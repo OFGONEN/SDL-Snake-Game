@@ -1,2 +1,5 @@
 .github/**
 build/*
+
+# High score files - user data
+scores.txt
