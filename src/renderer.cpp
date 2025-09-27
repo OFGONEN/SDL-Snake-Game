@@ -95,9 +95,6 @@ void Renderer::UpdateWindowTitle(int score, int fps) {
   SDL_SetWindowTitle(sdl_window, title.c_str());
 }
 
-void Renderer::RenderText(const std::string& text, int x, int y, SDL_Color color) {
-  RenderTextTTF(text, x, y, color, false);
-}
 
 void Renderer::RenderNameInput(const std::string& currentInput) {
   RenderNameInputWithValidation(currentInput, "");
@@ -142,41 +139,6 @@ void Renderer::RenderNameInputWithValidation(const std::string& currentInput, co
   PresentScreen();
 }
 
-void Renderer::RenderHighScores(const std::vector<ScoreEntry>& scores) {
-  ClearScreen();
-
-  SDL_Color white = GetColor(255, 255, 255);
-  SDL_Color gold = GetColor(255, 215, 0);
-  SDL_Color silver = GetColor(192, 192, 192);
-  SDL_Color bronze = GetColor(205, 127, 50);
-
-  int centerX = screen_width / 2;
-  int startY = 80;
-
-  RenderTextTTF("HIGH SCORES", centerX - 80, 30, gold, true);
-
-  if (scores.empty()) {
-    RenderTextTTF("No scores yet!", centerX - 60, startY + 50, white);
-  } else {
-    for (std::size_t i = 0; i < scores.size() && i < 10; ++i) {
-      SDL_Color rankColor = white;
-      if (i == 0) rankColor = gold;
-      else if (i == 1) rankColor = silver;
-      else if (i == 2) rankColor = bronze;
-
-      std::string rank = std::to_string(i + 1) + ".";
-      std::string scoreText = scores[i].playerName + " - " + std::to_string(scores[i].score);
-
-      RenderTextTTF(rank, centerX - 150, startY + i * 30, rankColor);
-      RenderTextTTF(scoreText, centerX - 120, startY + i * 30, white);
-    }
-  }
-
-  RenderTextTTF("Press R to restart", centerX - 80, startY + 320, GetColor(128, 128, 128));
-  RenderTextTTF("Press ESC to go back", centerX - 90, startY + 350, GetColor(128, 128, 128));
-
-  PresentScreen();
-}
 
 void Renderer::RenderEnhancedHighScores(const std::vector<ScoreEntry>& scores,
                                         std::function<std::string(const std::string&)> formatTimestamp) {

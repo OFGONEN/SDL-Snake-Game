@@ -19,13 +19,11 @@ public:
     void LoadScores();
     void SaveScore(const std::string& name, int score);
     std::vector<ScoreEntry> GetTopScores(std::size_t count = 10) const;
-    std::shared_ptr<const std::vector<ScoreEntry>> GetSharedTopScores(std::size_t count = 10) const;
     bool IsNewHighestScore(int score) const;
     std::size_t GetScoreCount() const;
     void ClearScores();
 
     std::string FormatTimestamp(const std::string& timestamp) const;
-    std::string FormatRelativeTime(const std::string& timestamp) const;
 
     static bool IsValidPlayerName(const std::string& name);
     static std::string SanitizePlayerName(const std::string& name);

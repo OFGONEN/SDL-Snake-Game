@@ -24,10 +24,6 @@ public:
     ScoreEntry& operator=(ScoreEntry&& other) noexcept = default;
 
     ~ScoreEntry() = default;
-
-    bool operator<(const ScoreEntry& other) const;
-    bool operator>(const ScoreEntry& other) const;
-    bool operator==(const ScoreEntry& other) const;
 };
 
 #endif

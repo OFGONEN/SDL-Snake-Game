@@ -100,12 +100,6 @@ std::vector<ScoreEntry> HighScoreManager::GetTopScores(std::size_t count) const 
     return std::vector<ScoreEntry>(scores_.begin(), scores_.begin() + actualCount);
 }
 
-std::shared_ptr<const std::vector<ScoreEntry>> HighScoreManager::GetSharedTopScores(std::size_t count) const {
-    std::size_t actualCount = std::min(count, scores_.size());
-    auto sharedScores = std::make_shared<std::vector<ScoreEntry>>(
-        scores_.begin(), scores_.begin() + actualCount);
-    return sharedScores;
-}
 
 bool HighScoreManager::IsNewHighestScore(int score) const {
     if (scores_.empty()) {
@@ -177,19 +171,6 @@ std::string HighScoreManager::FormatTimestamp(const std::string& timestamp) cons
     return timestamp; // Fallback to original if parsing fails
 }
 
-std::string HighScoreManager::FormatRelativeTime(const std::string& timestamp) const {
-    if (timestamp.empty()) return "Unknown";
-
-    // For now, just return "Today", "Yesterday", etc.
-    // This could be enhanced with actual date comparison
-    std::string currentTime = GetCurrentTimestamp();
-
-    if (timestamp.substr(0, 10) == currentTime.substr(0, 10)) {
-        return "Today " + timestamp.substr(11, 5);
-    }
-
-    return FormatTimestamp(timestamp);
-}
 
 void HighScoreManager::CreateEmptyFile() const {
     std::ofstream file(filename_);
