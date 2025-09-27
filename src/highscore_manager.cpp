@@ -69,8 +69,13 @@ void HighScoreManager::SaveScore(const std::string& name, int score) {
         throw std::invalid_argument("Player name cannot be empty");
     }
 
+    std::string sanitizedName = SanitizePlayerName(name);
+    if (!IsValidPlayerName(sanitizedName)) {
+        throw std::invalid_argument("Invalid player name: " + name);
+    }
+
     std::string timestamp = GetCurrentTimestamp();
-    scores_.emplace_back(name, score, timestamp);
+    scores_.emplace_back(sanitizedName, score, timestamp);
 
     SortScores();
     TrimScores();
@@ -147,9 +152,89 @@ bool HighScoreManager::FileExists(const std::string& filename) const {
     return file.good();
 }
 
+std::string HighScoreManager::FormatTimestamp(const std::string& timestamp) const {
+    if (timestamp.empty()) return "Unknown";
+
+    // Convert from "2025-09-28_02:12:53" to "Sep 28, 2025 02:12"
+    if (timestamp.length() >= 19) {
+        std::string year = timestamp.substr(0, 4);
+        std::string month = timestamp.substr(5, 2);
+        std::string day = timestamp.substr(8, 2);
+        std::string time = timestamp.substr(11, 5); // HH:MM
+
+        // Convert month number to name
+        const std::vector<std::string> months = {
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        };
+
+        int monthNum = std::stoi(month) - 1;
+        if (monthNum >= 0 && monthNum < 12) {
+            return months[monthNum] + " " + day + ", " + year + " " + time;
+        }
+    }
+
+    return timestamp; // Fallback to original if parsing fails
+}
+
+std::string HighScoreManager::FormatRelativeTime(const std::string& timestamp) const {
+    if (timestamp.empty()) return "Unknown";
+
+    // For now, just return "Today", "Yesterday", etc.
+    // This could be enhanced with actual date comparison
+    std::string currentTime = GetCurrentTimestamp();
+
+    if (timestamp.substr(0, 10) == currentTime.substr(0, 10)) {
+        return "Today " + timestamp.substr(11, 5);
+    }
+
+    return FormatTimestamp(timestamp);
+}
+
 void HighScoreManager::CreateEmptyFile() const {
     std::ofstream file(filename_);
     if (file.is_open()) {
         file << "PlayerName,Score,Timestamp\n";
     }
+}
+
+bool HighScoreManager::IsValidPlayerName(const std::string& name) {
+    if (name.empty() || name.length() > 20) {
+        return false;
+    }
+
+    for (char c : name) {
+        if (!std::isalnum(c) && c != '_' && c != '-' && c != ' ') {
+            return false;
+        }
+    }
+
+    std::string trimmed = name;
+    trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+    trimmed.erase(trimmed.find_last_not_of(" \t") + 1);
+
+    return !trimmed.empty();
+}
+
+std::string HighScoreManager::SanitizePlayerName(const std::string& name) {
+    std::string sanitized = name;
+
+    sanitized.erase(0, sanitized.find_first_not_of(" \t"));
+    sanitized.erase(sanitized.find_last_not_of(" \t") + 1);
+
+    for (char& c : sanitized) {
+        if (!std::isalnum(c) && c != '_' && c != '-' && c != ' ') {
+            c = '_';
+        }
+    }
+
+    if (sanitized.length() > 20) {
+        sanitized = sanitized.substr(0, 20);
+    }
+
+    if (sanitized.empty()) {
+        sanitized = "Player";
+    }
+
+    return sanitized;
 }

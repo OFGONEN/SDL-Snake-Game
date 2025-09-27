@@ -68,7 +68,8 @@ void Game::Run(Controller const &controller, Renderer &renderer,
       renderer.RenderGameOverScreen(score, highScoreManager->IsNewHighestScore(score));
       break;
     case GameState::SHOW_SCORES:
-      renderer.RenderHighScores(highScoreManager->GetTopScores(10));
+      renderer.RenderEnhancedHighScores(highScoreManager->GetTopScores(10),
+        [this](const std::string& timestamp) { return highScoreManager->FormatTimestamp(timestamp); });
       break;
     }
 

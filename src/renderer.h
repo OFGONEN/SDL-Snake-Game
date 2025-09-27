@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <functional>
 
 enum class GameState;
 
@@ -34,7 +35,10 @@ public:
 
   void RenderText(const std::string& text, int x, int y, SDL_Color color);
   void RenderNameInput(const std::string& currentInput);
+  void RenderNameInputWithValidation(const std::string& currentInput, const std::string& validationMessage);
   void RenderHighScores(const std::vector<ScoreEntry>& scores);
+  void RenderEnhancedHighScores(const std::vector<ScoreEntry>& scores,
+                                std::function<std::string(const std::string&)> formatTimestamp);
   void RenderGameOverScreen(int score, bool isHighScore);
 
 private:

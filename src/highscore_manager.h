@@ -24,6 +24,12 @@ public:
     std::size_t GetScoreCount() const;
     void ClearScores();
 
+    std::string FormatTimestamp(const std::string& timestamp) const;
+    std::string FormatRelativeTime(const std::string& timestamp) const;
+
+    static bool IsValidPlayerName(const std::string& name);
+    static std::string SanitizePlayerName(const std::string& name);
+
 private:
     std::string filename_;
     std::vector<ScoreEntry> scores_;
