@@ -117,106 +117,137 @@ main.cpp
 
 ## Architectural Decisions
 
+### Rubric-Driven Design Goals
+
 This project is designed to meet all Udacity C++ Nanodegree rubric criteria through strategic architectural choices. Each decision below maps to specific rubric requirements:
 
-### 1. **Loops, Functions, and I/O Requirements** (Target: 2+ criteria)
+#### **Loops, Functions, and I/O Requirements** (Target: 2+ criteria)
 
-#### **Control Structures and Function Organization**
+**Control Structures and Function Organization**
 - **Multiple Control Structures**: Implement various loops (for, while), conditionals (if/else, switch), and range-based loops throughout the codebase
 - **Function Decomposition**: Break down complex operations into smaller, well-named functions with single responsibilities
 - **Function Overloading**: Use overloaded functions for similar operations with different parameter types
 
-#### **File I/O Integration**
+**File I/O Integration**
 - **High Score Persistence**: Read/write high scores to external file (`scores.txt`)
 - **Configuration Loading**: Load game settings from configuration file (`config.json`)
 - **Game State Saving**: Implement save/load functionality for game progress
 
-#### **Enhanced User Input**
+**Enhanced User Input**
 - **Extended Controls**: Support additional inputs beyond basic movement (pause, restart, speed adjustment)
 - **Configuration Options**: Allow runtime adjustment of game parameters via user input
 
-### 2. **Object-Oriented Programming Requirements** (Target: 3+ criteria)
+#### **Object-Oriented Programming Requirements** (Target: 3+ criteria)
 
-#### **Class Design with Access Specifiers**
+**Class Design with Access Specifiers**
 - **Explicit Visibility**: All data members marked as `public`, `private`, or `protected`
 - **Encapsulation**: Private data members with public getter/setter methods where appropriate
 - **Interface Abstraction**: Public methods expose only necessary functionality
 
-#### **Constructor Best Practices**
+**Constructor Best Practices**
 - **Member Initialization Lists**: All constructors use member initialization lists for all member variables
 - **RAII Compliance**: Constructors acquire resources, destructors release them
 
-#### **Inheritance Hierarchy**
+**Inheritance Hierarchy**
 - **Base Entity Class**: Create abstract `Entity` base class for `Snake` and potential `Food` classes
 - **Virtual Functions**: Use virtual methods for polymorphic behavior (`Update()`, `Render()`)
 - **Override Specification**: Use `override` keyword for derived class virtual function implementations
 
-#### **Template Implementation**
+**Template Implementation**
 - **Generic Containers**: Use templated classes for game components (e.g., `GameBoard<T>`)
 - **Function Templates**: Create template functions for common operations (collision detection, coordinate conversion)
 
-### 3. **Memory Management Requirements** (Target: 3+ criteria)
+#### **Memory Management Requirements** (Target: 3+ criteria)
 
-#### **Reference Usage**
+**Reference Usage**
 - **Pass-by-Reference**: Use const references for large objects in function parameters
 - **Reference Returns**: Return references from getter methods where appropriate
 - **Reference Variables**: Use reference variables to avoid unnecessary copying
 
-#### **RAII and Scope Management**
+**RAII and Scope Management**
 - **Automatic Resource Management**: Use stack allocation and RAII for automatic cleanup
 - **Scope-Based Lifetime**: Design object lifetimes to match scope requirements
 - **Exception Safety**: Ensure resources are properly released even during exceptions
 
-#### **Smart Pointer Implementation**
+**Smart Pointer Implementation**
 - **Unique Ownership**: Use `std::unique_ptr` for exclusive resource ownership (e.g., game entities)
 - **Shared Resources**: Use `std::shared_ptr` for resources with multiple owners (e.g., textures, sounds)
 - **Weak References**: Use `std::weak_ptr` to break circular dependencies where needed
 
-#### **Move Semantics**
+**Move Semantics**
 - **Move Constructors**: Implement move constructors for performance-critical classes
 - **Move Assignment**: Provide move assignment operators where beneficial
 - **Perfect Forwarding**: Use `std::move` and `std::forward` to avoid unnecessary copies
 
-#### **Rule of Five Compliance**
+**Rule of Five Compliance**
 - **Complete Implementation**: For classes managing resources, implement all five special member functions
 - **Consistent Behavior**: Ensure copy/move operations maintain class invariants
 
-### 4. **Concurrency Requirements** (Target: 2+ criteria)
+#### **Concurrency Requirements** (Target: 2+ criteria)
 
-#### **Multithreading Architecture**
+**Multithreading Architecture**
 - **Separate Render Thread**: Run rendering operations on dedicated thread for smooth graphics
 - **Input Processing Thread**: Handle user input on separate thread to prevent blocking
 - **Game Logic Thread**: Keep game state updates on main thread with proper synchronization
 
-#### **Thread Synchronization**
+**Thread Synchronization**
 - **Mutex Protection**: Use `std::mutex` and `std::lock_guard` to protect shared game state
 - **Atomic Operations**: Use `std::atomic` for simple shared variables (scores, flags)
 - **Condition Variables**: Implement `std::condition_variable` for thread coordination (pause/resume functionality)
 
-#### **Asynchronous Operations**
+**Asynchronous Operations**
 - **Promise/Future Pattern**: Use `std::promise`/`std::future` for communication between threads
 - **Async File Operations**: Perform file I/O operations asynchronously using `std::async`
 
-### 5. **Implementation Strategy**
+#### **Implementation Strategy**
 
-#### **Development Phases**
+**Development Phases**
 1. **Phase 1**: Establish core OOP structure with proper access specifiers and inheritance
 2. **Phase 2**: Implement file I/O and enhanced user input features
 3. **Phase 3**: Add smart pointers and move semantics for memory management
 4. **Phase 4**: Introduce multithreading and synchronization mechanisms
 
-#### **Code Quality Standards**
+**Code Quality Standards**
 - **Const Correctness**: Use `const` wherever possible for immutable data
 - **Exception Safety**: Implement proper exception handling with RAII
 - **Documentation**: Clear function and class documentation explaining behavior
 - **Naming Conventions**: Consistent, descriptive naming for all identifiers
 
-#### **Testing and Validation**
+**Testing and Validation**
 - **Rubric Compliance**: Each implemented feature must map to specific rubric criteria
 - **Performance Testing**: Verify that concurrency improvements actually enhance performance
 - **Memory Leak Detection**: Use tools to ensure proper memory management
 
 This architectural foundation ensures that the final implementation will systematically address all rubric requirements while maintaining clean, maintainable, and efficient code.
+
+### Implementation Patterns
+
+#### **1. Separation of Concerns**
+Each class has a single, well-defined responsibility:
+- **Game**: Logic and state management
+- **Snake**: Entity behavior and data
+- **Controller**: Input handling only
+- **Renderer**: Display and graphics only
+
+#### **2. Resource Management**
+- **RAII Pattern**: Renderer class manages SDL resources in constructor/destructor
+- **Stack Allocation**: Most objects are stack-allocated for automatic cleanup
+- **STL Containers**: Uses `std::vector` for dynamic snake body management
+
+#### **3. Performance Considerations**
+- **Frame Rate Control**: Fixed 60 FPS with `SDL_Delay` for consistent gameplay
+- **Efficient Collision Detection**: Grid-based positioning for O(1) food collision checks
+- **Memory Efficiency**: Minimal dynamic allocation, primarily for snake body growth
+
+#### **4. Extensibility Design**
+- **Modular Architecture**: Easy to extend with new features (power-ups, obstacles, etc.)
+- **Clear Interfaces**: Public methods expose necessary functionality without implementation details
+- **Event-Driven Input**: Controller pattern allows for easy input method changes
+
+#### **5. Cross-Platform Compatibility**
+- **SDL2 Abstraction**: Platform-independent graphics and input handling
+- **CMake Build System**: Cross-platform build configuration
+- **Standard C++17**: Uses only standard library features for portability
 
 ## Game Mechanics
 
