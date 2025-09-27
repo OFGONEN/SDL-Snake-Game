@@ -65,7 +65,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
       renderer.RenderPlaying(snake, food);
       break;
     case GameState::GAME_OVER:
-      renderer.RenderGameOverScreen(score, highScoreManager->IsHighScore(score));
+      renderer.RenderGameOverScreen(score, highScoreManager->IsNewHighestScore(score));
       break;
     case GameState::SHOW_SCORES:
       renderer.RenderHighScores(highScoreManager->GetTopScores(10));

@@ -20,7 +20,7 @@ public:
     void SaveScore(const std::string& name, int score);
     std::vector<ScoreEntry> GetTopScores(std::size_t count = 10) const;
     std::shared_ptr<const std::vector<ScoreEntry>> GetSharedTopScores(std::size_t count = 10) const;
-    bool IsHighScore(int score) const;
+    bool IsNewHighestScore(int score) const;
     std::size_t GetScoreCount() const;
     void ClearScores();
 

@@ -102,12 +102,13 @@ std::shared_ptr<const std::vector<ScoreEntry>> HighScoreManager::GetSharedTopSco
     return sharedScores;
 }
 
-bool HighScoreManager::IsHighScore(int score) const {
-    if (scores_.size() < kMaxScores) {
-        return true;
+bool HighScoreManager::IsNewHighestScore(int score) const {
+    if (scores_.empty()) {
+        return true; // First score ever is always the highest
     }
 
-    return score > scores_.back().score;
+    // Check if this score is higher than the current highest score
+    return score > scores_.front().score;
 }
 
 std::size_t HighScoreManager::GetScoreCount() const {
