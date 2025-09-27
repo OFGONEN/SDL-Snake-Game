@@ -171,16 +171,36 @@ enum class GameState {
 
 ### Sprint 3: UI Enhancement & Integration (Session 3)
 
-#### Task 3.1: Text Rendering Capabilities
+#### Task 3.1: Enable SDL_ttf Text Rendering ⚠️ **IN PROGRESS**
+**Rubric Criteria**: Build System Integration, Memory Management
+**Files**: `CMakeLists.txt`, `src/renderer.h`, `src/renderer.cpp`
+
+**Implementation Checklist:**
+- [ ] Add SDL_ttf dependency to CMakeLists.txt
+- [ ] Update build system to link SDL_ttf library
+- [ ] Initialize TTF subsystem in Renderer constructor
+- [ ] Load default font for text rendering
+- [ ] Implement proper TTF resource cleanup (RAII)
+- [ ] Test SDL_ttf integration with simple text rendering
+
+**SDL_ttf Key Functions to Implement:**
+- [ ] `TTF_Init()` - Initialize TTF library
+- [ ] `TTF_OpenFont()` - Load font file
+- [ ] `TTF_RenderUTF8_Solid()` - Render text to SDL_Surface
+- [ ] `SDL_CreateTextureFromSurface()` - Convert surface to texture
+- [ ] `TTF_CloseFont()` - Clean up font resources
+- [ ] `TTF_Quit()` - Shutdown TTF library
+
+#### Task 3.2: Text Rendering Capabilities
 **Rubric Criteria**: Object-Oriented Programming, Memory Management
 **Files**: `src/renderer.h`, `src/renderer.cpp`
 
 **Implementation Checklist:**
-- [ ] Extend Renderer class with text rendering methods
+- [ ] Extend Renderer class with SDL_ttf-based text rendering methods
 - [ ] Use const references for string parameters
-- [ ] Implement proper resource management for text surfaces
+- [ ] Implement proper resource management for TTF_Font and SDL_Surface
 - [ ] Add private helper methods for text operations
-- [ ] Use RAII for SDL_Surface cleanup
+- [ ] Use RAII for SDL_Surface and SDL_Texture cleanup
 
 **New Methods:**
 - [ ] `RenderText(const std::string& text, int x, int y, SDL_Color color)`
@@ -188,7 +208,7 @@ enum class GameState {
 - [ ] `RenderHighScores(const std::vector<ScoreEntry>& scores)`
 - [ ] `RenderGameOverScreen(int score, bool isHighScore)`
 
-#### Task 3.2: Game Loop State Integration
+#### Task 3.3: Game Loop State Integration
 **Rubric Criteria**: Loops, Functions, and I/O, Object-Oriented Programming
 **Files**: `src/game.cpp`, `src/main.cpp`
 
