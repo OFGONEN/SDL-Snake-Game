@@ -229,6 +229,52 @@ enum class GameState {
 - [x] Fixed window close (X button) event handling across all game states
 - [x] Improved Controller interface to return quit status from text input
 - [x] Streamlined event polling to prevent conflicts between states
+- [x] Refactored to top-down event handling architecture with single-pass polling
+
+#### Task 3.4: Refactor Rendering to State-Specific Methods ✅ **COMPLETED**
+**Rubric Criteria**: Object-Oriented Programming, Separation of Concerns
+**Files**: `src/game.cpp`, `src/renderer.h`, `src/renderer.cpp`
+
+**Problem Identified:**
+Current monolithic rendering approach violates separation of concerns:
+- Game class fetches UI data (high scores) for renderer
+- Single render method handles all states with complex parameter passing
+- Inconsistent with state-specific Update method pattern
+- Unnecessary data fetching and parameter passing for unused states
+
+**Implementation Checklist:**
+- [x] Remove monolithic `Render` method with complex parameters
+- [x] Implement state-specific render methods in Game class
+- [x] Move data fetching responsibility to appropriate render methods
+- [x] Create focused Renderer methods for each game state
+- [x] Update main game loop to use state-specific rendering approach
+- [x] Ensure proper separation between game logic and rendering logic
+
+**New Rendering Architecture:**
+```cpp
+// State-specific rendering in Game::Run()
+switch (currentState) {
+case GameState::ENTER_NAME:
+  renderer.RenderNameInput(playerName);
+  break;
+case GameState::PLAYING:
+  renderer.RenderGame(snake, food);
+  break;
+case GameState::GAME_OVER:
+  renderer.RenderGameOver(score, highScoreManager->IsHighScore(score));
+  break;
+case GameState::SHOW_SCORES:
+  renderer.RenderHighScores(highScoreManager->GetTopScores(10));
+  break;
+}
+```
+
+**Benefits:**
+- ✅ Clean separation of concerns (data fetching where needed)
+- ✅ Consistent pattern with Update methods
+- ✅ Improved maintainability and testability
+- ✅ Reduced unnecessary parameter passing
+- ✅ More focused and readable code
 
 ### Sprint 4: Advanced Features & Polish (Session 4)
 

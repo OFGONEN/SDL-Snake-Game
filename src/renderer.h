@@ -16,11 +16,7 @@ public:
            const std::size_t grid_width, const std::size_t grid_height);
   ~Renderer();
 
-  void Render(Snake const snake, SDL_Point const &food);
-  void Render(Snake const snake, SDL_Point const &food, GameState state,
-              const std::string& playerName = "",
-              const std::vector<ScoreEntry>& highScores = {},
-              int currentScore = 0);
+  void RenderPlaying(Snake const snake, SDL_Point const &food);
   void UpdateWindowTitle(int score, int fps);
 
   void RenderText(const std::string& text, int x, int y, SDL_Color color);

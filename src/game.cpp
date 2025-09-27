@@ -52,13 +52,21 @@ void Game::Run(Controller const &controller, Renderer &renderer,
       Update();
     }
 
-    // State-aware rendering
-    std::vector<ScoreEntry> scores;
-    if (currentState == GameState::SHOW_SCORES) {
-      scores = highScoreManager->GetTopScores(10);
+    // State-specific rendering
+    switch (currentState) {
+    case GameState::ENTER_NAME:
+      renderer.RenderNameInput(playerName);
+      break;
+    case GameState::PLAYING:
+      renderer.RenderPlaying(snake, food);
+      break;
+    case GameState::GAME_OVER:
+      renderer.RenderGameOverScreen(score, highScoreManager->IsHighScore(score));
+      break;
+    case GameState::SHOW_SCORES:
+      renderer.RenderHighScores(highScoreManager->GetTopScores(10));
+      break;
     }
-
-    renderer.Render(snake, food, currentState, playerName, scores, score);
 
     frame_end = SDL_GetTicks();
 

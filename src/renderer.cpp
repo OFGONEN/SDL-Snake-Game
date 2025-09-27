@@ -51,7 +51,7 @@ Renderer::~Renderer() {
   SDL_Quit();
 }
 
-void Renderer::Render(Snake const snake, SDL_Point const &food) {
+void Renderer::RenderPlaying(Snake const snake, SDL_Point const &food) {
   SDL_Rect block;
   block.w = screen_width / grid_width;
   block.h = screen_height / grid_height;
@@ -88,29 +88,6 @@ void Renderer::Render(Snake const snake, SDL_Point const &food) {
   SDL_RenderPresent(sdl_renderer);
 }
 
-void Renderer::Render(Snake const snake, SDL_Point const &food, GameState state,
-                      const std::string& playerName,
-                      const std::vector<ScoreEntry>& highScores,
-                      int currentScore) {
-  ClearScreen();
-
-  switch (state) {
-  case GameState::ENTER_NAME:
-    RenderNameInput(playerName);
-    break;
-  case GameState::PLAYING:
-    Render(snake, food);
-    return;
-  case GameState::GAME_OVER:
-    RenderGameOverScreen(currentScore, !highScores.empty());
-    break;
-  case GameState::SHOW_SCORES:
-    RenderHighScores(highScores);
-    break;
-  }
-
-  PresentScreen();
-}
 
 void Renderer::UpdateWindowTitle(int score, int fps) {
   std::string title{"Snake Score: " + std::to_string(score) +
@@ -123,6 +100,8 @@ void Renderer::RenderText(const std::string& text, int x, int y, SDL_Color color
 }
 
 void Renderer::RenderNameInput(const std::string& currentInput) {
+  ClearScreen();
+
   SDL_Color white = GetColor(255, 255, 255);
   SDL_Color green = GetColor(0, 255, 0);
   SDL_Color gray = GetColor(128, 128, 128);
@@ -138,9 +117,13 @@ void Renderer::RenderNameInput(const std::string& currentInput) {
 
   RenderTextTTF("Press ENTER to start", centerX - 90, centerY + 50, gray);
   RenderTextTTF("Press ESC to cancel", centerX - 90, centerY + 80, gray);
+
+  PresentScreen();
 }
 
 void Renderer::RenderHighScores(const std::vector<ScoreEntry>& scores) {
+  ClearScreen();
+
   SDL_Color white = GetColor(255, 255, 255);
   SDL_Color gold = GetColor(255, 215, 0);
   SDL_Color silver = GetColor(192, 192, 192);
@@ -170,9 +153,13 @@ void Renderer::RenderHighScores(const std::vector<ScoreEntry>& scores) {
 
   RenderTextTTF("Press R to restart", centerX - 80, startY + 320, GetColor(128, 128, 128));
   RenderTextTTF("Press ESC to go back", centerX - 90, startY + 350, GetColor(128, 128, 128));
+
+  PresentScreen();
 }
 
 void Renderer::RenderGameOverScreen(int score, bool isHighScore) {
+  ClearScreen();
+
   SDL_Color white = GetColor(255, 255, 255);
   SDL_Color red = GetColor(255, 0, 0);
   SDL_Color green = GetColor(0, 255, 0);
@@ -192,6 +179,8 @@ void Renderer::RenderGameOverScreen(int score, bool isHighScore) {
 
   RenderTextTTF("Press SPACE for high scores", centerX - 120, centerY + 30, gray);
   RenderTextTTF("Press R to restart", centerX - 80, centerY + 60, gray);
+
+  PresentScreen();
 }
 
 void Renderer::RenderTextTTF(const std::string& text, int x, int y, SDL_Color color, bool large) {
