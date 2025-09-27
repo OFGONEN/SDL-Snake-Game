@@ -41,14 +41,13 @@ void Controller::HandleInput(bool &running, Snake &snake) const {
   }
 }
 
-void Controller::HandleTextInput(std::string& inputText, bool& inputComplete) const {
+bool Controller::HandleTextInput(std::string& inputText, bool& inputComplete) const {
   inputComplete = false;
 
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
     if (e.type == SDL_QUIT) {
-      inputComplete = true;
-      return;
+      return false;
     } else if (e.type == SDL_KEYDOWN) {
       switch (e.key.keysym.sym) {
       case SDLK_RETURN:
@@ -77,6 +76,7 @@ void Controller::HandleTextInput(std::string& inputText, bool& inputComplete) co
       ProcessTextEvent(e, inputText);
     }
   }
+  return true;
 }
 
 void Controller::HandleTextInput(SDL_Event& event, std::string& inputText) const {

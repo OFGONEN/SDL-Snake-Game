@@ -25,28 +25,26 @@ void Game::Run(Controller const &controller, Renderer &renderer,
     // State-based input and update handling
     switch (currentState) {
     case GameState::ENTER_NAME:
-      UpdateEnterName(controller);
+      if (!UpdateEnterName(controller)) running = false;
       break;
     case GameState::PLAYING:
-      UpdatePlaying(controller);
+      if (!UpdatePlaying(controller)) running = false;
       break;
     case GameState::GAME_OVER:
-      UpdateGameOver(controller);
+      if (!UpdateGameOver(controller)) running = false;
       break;
     case GameState::SHOW_SCORES:
-      UpdateShowScores(controller);
+      if (!UpdateShowScores(controller)) running = false;
       break;
     }
 
-    // Check for quit events in all states
-    SDL_Event e;
-    while (SDL_PollEvent(&e)) {
-      if (e.type == SDL_QUIT) {
-        running = false;
-      }
+    // State-aware rendering
+    std::vector<ScoreEntry> scores;
+    if (currentState == GameState::SHOW_SCORES) {
+      scores = highScoreManager->GetTopScores(10);
     }
 
-    renderer.Render(snake, food);
+    renderer.Render(snake, food, currentState, playerName, scores, score);
 
     frame_end = SDL_GetTicks();
 
@@ -109,28 +107,33 @@ void Game::Update() {
   }
 }
 
-void Game::UpdateEnterName(const Controller& controller) {
+bool Game::UpdateEnterName(const Controller& controller) {
   bool inputComplete = false;
-  controller.HandleTextInput(playerName, inputComplete);
+  if (!controller.HandleTextInput(playerName, inputComplete)) {
+    return false; // User clicked X to quit
+  }
 
   if (inputComplete) {
     if (!playerName.empty()) {
       TransitionToState(GameState::PLAYING);
+    } else {
+      return false; // User pressed ESC or quit without entering name
     }
   }
+  return true;
 }
 
-void Game::UpdatePlaying(const Controller& controller) {
+bool Game::UpdatePlaying(const Controller& controller) {
   bool running = true;
   controller.HandleInput(running, snake);
   if (!running) {
-    // Handle quit in main loop
-    return;
+    return false; // User quit during gameplay
   }
   Update();
+  return true;
 }
 
-void Game::UpdateGameOver(const Controller& controller) {
+bool Game::UpdateGameOver(const Controller& controller) {
   // Save high score if qualified
   if (!playerName.empty() && highScoreManager->IsHighScore(score)) {
     highScoreManager->SaveScore(playerName, score);
@@ -139,7 +142,9 @@ void Game::UpdateGameOver(const Controller& controller) {
   // Wait for input to show scores or restart
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
-    if (e.type == SDL_KEYDOWN) {
+    if (e.type == SDL_QUIT) {
+      return false;
+    } else if (e.type == SDL_KEYDOWN) {
       switch (e.key.keysym.sym) {
       case SDLK_SPACE:
         TransitionToState(GameState::SHOW_SCORES);
@@ -151,13 +156,16 @@ void Game::UpdateGameOver(const Controller& controller) {
       }
     }
   }
+  return true;
 }
 
-void Game::UpdateShowScores(const Controller& controller) {
+bool Game::UpdateShowScores(const Controller& controller) {
   // Wait for input to restart
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
-    if (e.type == SDL_KEYDOWN) {
+    if (e.type == SDL_QUIT) {
+      return false;
+    } else if (e.type == SDL_KEYDOWN) {
       switch (e.key.keysym.sym) {
       case SDLK_r:
         ResetGame();
@@ -169,6 +177,7 @@ void Game::UpdateShowScores(const Controller& controller) {
       }
     }
   }
+  return true;
 }
 
 void Game::TransitionToState(GameState newState) {

@@ -171,59 +171,64 @@ enum class GameState {
 
 ### Sprint 3: UI Enhancement & Integration (Session 3)
 
-#### Task 3.1: Enable SDL_ttf Text Rendering ⚠️ **IN PROGRESS**
+#### Task 3.1: Enable SDL_ttf Text Rendering ✅ **COMPLETED**
 **Rubric Criteria**: Build System Integration, Memory Management
 **Files**: `CMakeLists.txt`, `src/renderer.h`, `src/renderer.cpp`
 
 **Implementation Checklist:**
-- [ ] Add SDL_ttf dependency to CMakeLists.txt
-- [ ] Update build system to link SDL_ttf library
-- [ ] Initialize TTF subsystem in Renderer constructor
-- [ ] Load default font for text rendering
-- [ ] Implement proper TTF resource cleanup (RAII)
-- [ ] Test SDL_ttf integration with simple text rendering
+- [x] Add SDL_ttf dependency to CMakeLists.txt
+- [x] Update build system to link SDL_ttf library
+- [x] Initialize TTF subsystem in Renderer constructor
+- [x] Load default font for text rendering
+- [x] Implement proper TTF resource cleanup (RAII)
+- [x] Test SDL_ttf integration with simple text rendering
 
-**SDL_ttf Key Functions to Implement:**
-- [ ] `TTF_Init()` - Initialize TTF library
-- [ ] `TTF_OpenFont()` - Load font file
-- [ ] `TTF_RenderUTF8_Solid()` - Render text to SDL_Surface
-- [ ] `SDL_CreateTextureFromSurface()` - Convert surface to texture
-- [ ] `TTF_CloseFont()` - Clean up font resources
-- [ ] `TTF_Quit()` - Shutdown TTF library
+**SDL_ttf Key Functions Implemented:**
+- [x] `TTF_Init()` - Initialize TTF library
+- [x] `TTF_OpenFont()` - Load font file
+- [x] `TTF_RenderUTF8_Solid()` - Render text to SDL_Surface
+- [x] `SDL_CreateTextureFromSurface()` - Convert surface to texture
+- [x] `TTF_CloseFont()` - Clean up font resources
+- [x] `TTF_Quit()` - Shutdown TTF library
 
-#### Task 3.2: Text Rendering Capabilities
+#### Task 3.2: Text Rendering Capabilities ✅ **COMPLETED**
 **Rubric Criteria**: Object-Oriented Programming, Memory Management
 **Files**: `src/renderer.h`, `src/renderer.cpp`
 
 **Implementation Checklist:**
-- [ ] Extend Renderer class with SDL_ttf-based text rendering methods
-- [ ] Use const references for string parameters
-- [ ] Implement proper resource management for TTF_Font and SDL_Surface
-- [ ] Add private helper methods for text operations
-- [ ] Use RAII for SDL_Surface and SDL_Texture cleanup
+- [x] Extend Renderer class with SDL_ttf-based text rendering methods
+- [x] Use const references for string parameters
+- [x] Implement proper resource management for TTF_Font and SDL_Surface
+- [x] Add private helper methods for text operations
+- [x] Use RAII for SDL_Surface and SDL_Texture cleanup
 
-**New Methods:**
-- [ ] `RenderText(const std::string& text, int x, int y, SDL_Color color)`
-- [ ] `RenderNameInput(const std::string& currentInput)`
-- [ ] `RenderHighScores(const std::vector<ScoreEntry>& scores)`
-- [ ] `RenderGameOverScreen(int score, bool isHighScore)`
+**New Methods Implemented:**
+- [x] `RenderText(const std::string& text, int x, int y, SDL_Color color)`
+- [x] `RenderNameInput(const std::string& currentInput)`
+- [x] `RenderHighScores(const std::vector<ScoreEntry>& scores)`
+- [x] `RenderGameOverScreen(int score, bool isHighScore)`
 
-#### Task 3.3: Game Loop State Integration
+#### Task 3.3: Game Loop State Integration ✅ **COMPLETED**
 **Rubric Criteria**: Loops, Functions, and I/O, Object-Oriented Programming
 **Files**: `src/game.cpp`, `src/main.cpp`
 
 **Implementation Checklist:**
-- [ ] Modify main game loop with state-specific logic
-- [ ] Use various control structures (while, for, if/else, switch)
-- [ ] Implement function decomposition for complex operations
-- [ ] Add proper method overriding where appropriate
-- [ ] Use member initialization lists for new data members
+- [x] Modify main game loop with state-specific logic
+- [x] Use various control structures (while, for, if/else, switch)
+- [x] Implement function decomposition for complex operations
+- [x] Add proper method overriding where appropriate
+- [x] Use member initialization lists for new data members
 
 **State-Specific Updates:**
-- [ ] `UpdateEnterName()` - Handle name input state
-- [ ] `UpdatePlaying()` - Existing game logic
-- [ ] `UpdateGameOver()` - High score processing
-- [ ] `UpdateShowScores()` - Score display logic
+- [x] `UpdateEnterName()` - Handle name input state
+- [x] `UpdatePlaying()` - Existing game logic
+- [x] `UpdateGameOver()` - High score processing
+- [x] `UpdateShowScores()` - Score display logic
+
+**Additional Bug Fixes:**
+- [x] Fixed window close (X button) event handling across all game states
+- [x] Improved Controller interface to return quit status from text input
+- [x] Streamlined event polling to prevent conflicts between states
 
 ### Sprint 4: Advanced Features & Polish (Session 4)
 
@@ -350,11 +355,27 @@ enum class GameState {
 - High score persistence integrated with game flow
 - Proper const correctness and reference usage
 
+### ✅ **Sprint 3 Complete**: UI Enhancement & Integration
+**Files Modified:**
+- `CMakeLists.txt` - Added SDL_ttf dependency and linking
+- `src/renderer.h` - Extended with TTF text rendering capabilities
+- `src/renderer.cpp` - Implemented proper TTF font loading and text rendering
+- `src/game.cpp` - Enhanced state machine with better event handling
+- `src/controller.h` - Updated HandleTextInput to return quit status
+- `src/controller.cpp` - Fixed quit event handling in text input
+
+**Text Rendering Features Added:**
+- Multi-font support (regular and large fonts) with cross-platform font loading
+- State-aware rendering with color-coded text (gold, silver, bronze rankings)
+- Comprehensive UI screens: name input, game over, high scores display
+- Proper RAII resource management for TTF fonts and SDL surfaces
+- Event handling improvements for smooth user experience
+
 ---
 
-**Current Status**: ✅ Sprint 1 & 2 Complete - Ready for Sprint 3
-**Next Phase**: Sprint 3 - UI Enhancement & Integration (Text rendering capabilities, Game loop integration)
-**Achievement**: **3 out of 4 major rubric categories now COMPLETE** 🎯
-**Remaining**: Only Concurrency criteria optional for advanced features
+**Current Status**: ✅ Sprint 1, 2 & 3 Complete - Ready for Sprint 4 (Optional)
+**Next Phase**: Sprint 4 - Advanced Features & Polish (Concurrency, enhanced UX)
+**Achievement**: **ALL CORE REQUIREMENTS COMPLETE** 🎯
+**Remaining**: Optional concurrency features for advanced rubric criteria
 **Review Points**: After each sprint completion
 **Final Review**: Comprehensive testing and rubric criteria validation
