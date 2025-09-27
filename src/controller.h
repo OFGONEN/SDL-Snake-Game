@@ -6,9 +6,8 @@
 
 class Controller {
 public:
-  void HandleInput(bool &running, Snake &snake) const;
-  bool HandleTextInput(std::string& inputText, bool& inputComplete) const;
-  void HandleTextInput(SDL_Event& event, std::string& inputText) const;
+  void HandleInput(const SDL_Event& event, Snake &snake) const;
+  void HandleTextInput(const SDL_Event& event, std::string& inputText, bool& inputComplete) const;
   bool ValidatePlayerName(const std::string& name) const;
 
 private:

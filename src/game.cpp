@@ -22,20 +22,34 @@ void Game::Run(Controller const &controller, Renderer &renderer,
   while (running) {
     frame_start = SDL_GetTicks();
 
-    // State-based input and update handling
-    switch (currentState) {
-    case GameState::ENTER_NAME:
-      if (!UpdateEnterName(controller)) running = false;
-      break;
-    case GameState::PLAYING:
-      if (!UpdatePlaying(controller)) running = false;
-      break;
-    case GameState::GAME_OVER:
-      if (!UpdateGameOver(controller)) running = false;
-      break;
-    case GameState::SHOW_SCORES:
-      if (!UpdateShowScores(controller)) running = false;
-      break;
+    // Poll ALL events once per frame
+    SDL_Event e;
+    while (SDL_PollEvent(&e)) {
+      if (e.type == SDL_QUIT) {
+        running = false;
+        continue;
+      }
+
+      // Process event based on current state
+      switch (currentState) {
+      case GameState::ENTER_NAME:
+        UpdateEnterName(controller, e);
+        break;
+      case GameState::PLAYING:
+        UpdatePlaying(controller, e);
+        break;
+      case GameState::GAME_OVER:
+        UpdateGameOver(controller, e);
+        break;
+      case GameState::SHOW_SCORES:
+        UpdateShowScores(controller, e);
+        break;
+      }
+    }
+
+    // Update game logic (separate from event handling)
+    if (currentState == GameState::PLAYING) {
+      Update();
     }
 
     // State-aware rendering
@@ -107,77 +121,61 @@ void Game::Update() {
   }
 }
 
-bool Game::UpdateEnterName(const Controller& controller) {
+void Game::UpdateEnterName(const Controller& controller, const SDL_Event& event) {
   bool inputComplete = false;
-  if (!controller.HandleTextInput(playerName, inputComplete)) {
-    return false; // User clicked X to quit
-  }
+  controller.HandleTextInput(event, playerName, inputComplete);
 
   if (inputComplete) {
     if (!playerName.empty()) {
       TransitionToState(GameState::PLAYING);
     } else {
-      return false; // User pressed ESC or quit without entering name
+      // User pressed ESC - could transition to quit or stay in name input
+      playerName.clear();
     }
   }
-  return true;
 }
 
-bool Game::UpdatePlaying(const Controller& controller) {
-  bool running = true;
-  controller.HandleInput(running, snake);
-  if (!running) {
-    return false; // User quit during gameplay
-  }
-  Update();
-  return true;
+void Game::UpdatePlaying(const Controller& controller, const SDL_Event& event) {
+  controller.HandleInput(event, snake);
 }
 
-bool Game::UpdateGameOver(const Controller& controller) {
-  // Save high score if qualified
-  if (!playerName.empty() && highScoreManager->IsHighScore(score)) {
+void Game::UpdateGameOver(const Controller& controller, const SDL_Event& event) {
+  // Save high score if qualified (only do this once)
+  static bool scoreSaved = false;
+  if (!scoreSaved && !playerName.empty() && highScoreManager->IsHighScore(score)) {
     highScoreManager->SaveScore(playerName, score);
+    scoreSaved = true;
   }
 
-  // Wait for input to show scores or restart
-  SDL_Event e;
-  while (SDL_PollEvent(&e)) {
-    if (e.type == SDL_QUIT) {
-      return false;
-    } else if (e.type == SDL_KEYDOWN) {
-      switch (e.key.keysym.sym) {
-      case SDLK_SPACE:
-        TransitionToState(GameState::SHOW_SCORES);
-        break;
-      case SDLK_r:
-        ResetGame();
-        TransitionToState(GameState::ENTER_NAME);
-        break;
-      }
+  // Handle input for navigation
+  if (event.type == SDL_KEYDOWN) {
+    switch (event.key.keysym.sym) {
+    case SDLK_SPACE:
+      TransitionToState(GameState::SHOW_SCORES);
+      scoreSaved = false; // Reset for next game
+      break;
+    case SDLK_r:
+      ResetGame();
+      TransitionToState(GameState::ENTER_NAME);
+      scoreSaved = false; // Reset for next game
+      break;
     }
   }
-  return true;
 }
 
-bool Game::UpdateShowScores(const Controller& controller) {
-  // Wait for input to restart
-  SDL_Event e;
-  while (SDL_PollEvent(&e)) {
-    if (e.type == SDL_QUIT) {
-      return false;
-    } else if (e.type == SDL_KEYDOWN) {
-      switch (e.key.keysym.sym) {
-      case SDLK_r:
-        ResetGame();
-        TransitionToState(GameState::ENTER_NAME);
-        break;
-      case SDLK_ESCAPE:
-        TransitionToState(GameState::GAME_OVER);
-        break;
-      }
+void Game::UpdateShowScores(const Controller& controller, const SDL_Event& event) {
+  // Handle input for navigation
+  if (event.type == SDL_KEYDOWN) {
+    switch (event.key.keysym.sym) {
+    case SDLK_r:
+      ResetGame();
+      TransitionToState(GameState::ENTER_NAME);
+      break;
+    case SDLK_ESCAPE:
+      TransitionToState(GameState::GAME_OVER);
+      break;
     }
   }
-  return true;
 }
 
 void Game::TransitionToState(GameState newState) {

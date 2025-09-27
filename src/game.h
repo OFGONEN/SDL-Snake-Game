@@ -43,10 +43,10 @@ private:
 
   void PlaceFood();
   void Update();
-  bool UpdateEnterName(const Controller& controller);
-  bool UpdatePlaying(const Controller& controller);
-  bool UpdateGameOver(const Controller& controller);
-  bool UpdateShowScores(const Controller& controller);
+  void UpdateEnterName(const Controller& controller, const SDL_Event& event);
+  void UpdatePlaying(const Controller& controller, const SDL_Event& event);
+  void UpdateGameOver(const Controller& controller, const SDL_Event& event);
+  void UpdateShowScores(const Controller& controller, const SDL_Event& event);
 
   void TransitionToState(GameState newState);
   void ResetGame();

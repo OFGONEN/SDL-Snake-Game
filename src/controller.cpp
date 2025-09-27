@@ -12,86 +12,60 @@ void Controller::ChangeDirection(Snake &snake, Snake::Direction input,
   return;
 }
 
-void Controller::HandleInput(bool &running, Snake &snake) const {
-  SDL_Event e;
-  while (SDL_PollEvent(&e)) {
-    if (e.type == SDL_QUIT) {
-      running = false;
-    } else if (e.type == SDL_KEYDOWN) {
-      switch (e.key.keysym.sym) {
-      case SDLK_UP:
-        ChangeDirection(snake, Snake::Direction::kUp, Snake::Direction::kDown);
-        break;
-
-      case SDLK_DOWN:
-        ChangeDirection(snake, Snake::Direction::kDown, Snake::Direction::kUp);
-        break;
-
-      case SDLK_LEFT:
-        ChangeDirection(snake, Snake::Direction::kLeft,
-                        Snake::Direction::kRight);
-        break;
-
-      case SDLK_RIGHT:
-        ChangeDirection(snake, Snake::Direction::kRight,
-                        Snake::Direction::kLeft);
-        break;
-      }
-    }
-  }
-}
-
-bool Controller::HandleTextInput(std::string& inputText, bool& inputComplete) const {
-  inputComplete = false;
-
-  SDL_Event e;
-  while (SDL_PollEvent(&e)) {
-    if (e.type == SDL_QUIT) {
-      return false;
-    } else if (e.type == SDL_KEYDOWN) {
-      switch (e.key.keysym.sym) {
-      case SDLK_RETURN:
-      case SDLK_KP_ENTER:
-        if (ValidatePlayerName(inputText)) {
-          inputComplete = true;
-        }
-        break;
-
-      case SDLK_BACKSPACE:
-        if (!inputText.empty()) {
-          inputText.pop_back();
-        }
-        break;
-
-      case SDLK_ESCAPE:
-        inputText.clear();
-        inputComplete = true;
-        break;
-
-      default:
-        ProcessTextEvent(e, inputText);
-        break;
-      }
-    } else if (e.type == SDL_TEXTINPUT) {
-      ProcessTextEvent(e, inputText);
-    }
-  }
-  return true;
-}
-
-void Controller::HandleTextInput(SDL_Event& event, std::string& inputText) const {
-  if (event.type == SDL_TEXTINPUT) {
-    ProcessTextEvent(event, inputText);
-  } else if (event.type == SDL_KEYDOWN) {
+void Controller::HandleInput(const SDL_Event& event, Snake &snake) const {
+  if (event.type == SDL_KEYDOWN) {
     switch (event.key.keysym.sym) {
+    case SDLK_UP:
+      ChangeDirection(snake, Snake::Direction::kUp, Snake::Direction::kDown);
+      break;
+
+    case SDLK_DOWN:
+      ChangeDirection(snake, Snake::Direction::kDown, Snake::Direction::kUp);
+      break;
+
+    case SDLK_LEFT:
+      ChangeDirection(snake, Snake::Direction::kLeft,
+                      Snake::Direction::kRight);
+      break;
+
+    case SDLK_RIGHT:
+      ChangeDirection(snake, Snake::Direction::kRight,
+                      Snake::Direction::kLeft);
+      break;
+    }
+  }
+}
+
+void Controller::HandleTextInput(const SDL_Event& event, std::string& inputText, bool& inputComplete) const {
+  if (event.type == SDL_KEYDOWN) {
+    switch (event.key.keysym.sym) {
+    case SDLK_RETURN:
+    case SDLK_KP_ENTER:
+      if (ValidatePlayerName(inputText)) {
+        inputComplete = true;
+      }
+      break;
+
     case SDLK_BACKSPACE:
       if (!inputText.empty()) {
         inputText.pop_back();
       }
       break;
+
+    case SDLK_ESCAPE:
+      inputText.clear();
+      inputComplete = true;
+      break;
+
+    default:
+      ProcessTextEvent(event, inputText);
+      break;
     }
+  } else if (event.type == SDL_TEXTINPUT) {
+    ProcessTextEvent(event, inputText);
   }
 }
+
 
 bool Controller::ValidatePlayerName(const std::string& name) const {
   if (name.empty()) {
