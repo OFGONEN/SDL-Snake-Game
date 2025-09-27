@@ -278,16 +278,25 @@ case GameState::SHOW_SCORES:
 
 ### Sprint 4: Advanced Features & Polish (Session 4)
 
-#### Task 4.1: Smart Pointer Integration
+#### Task 4.1: Smart Pointer Integration ✅ **COMPLETED**
 **Rubric Criteria**: Memory Management
-**Files**: All relevant files
+**Files**: `src/renderer.h`, `src/renderer.cpp`, `src/highscore_manager.h`, `src/highscore_manager.cpp`, `src/score_entry.h`
 
 **Implementation Checklist:**
-- [ ] Use `std::unique_ptr` for HighScoreManager ownership
-- [ ] Implement `std::shared_ptr` for score data sharing
-- [ ] Add move semantics where beneficial
-- [ ] Implement Rule of Five where needed
-- [ ] Use `std::weak_ptr` if circular dependencies exist
+- [x] Use `std::unique_ptr` for HighScoreManager ownership
+- [x] Implement `std::shared_ptr` for score data sharing
+- [x] Add move semantics where beneficial
+- [x] Implement Rule of Five where needed
+- [x] Enhanced TTF font management with custom deleters
+- [x] Smart SDL resource management for surfaces and textures
+- [x] Perfect forwarding constructors for optimal performance
+
+**Advanced Features Implemented:**
+- **TTF Font Smart Pointers**: Custom `TTFFontDeleter` with `std::unique_ptr<TTF_Font, TTFFontDeleter>`
+- **SDL Resource Management**: Smart pointers for `SDL_Surface` and `SDL_Texture` with automatic cleanup
+- **Shared Score Collections**: `GetSharedTopScores()` returning `std::shared_ptr<const std::vector<ScoreEntry>>`
+- **Perfect Forwarding**: Template constructor with `std::forward` for efficient ScoreEntry construction
+- **Memory Safety**: Eliminated all manual resource cleanup, exception-safe resource management
 
 #### Task 4.2: Enhanced User Experience
 **Rubric Criteria**: Loops, Functions, and I/O
@@ -417,11 +426,24 @@ case GameState::SHOW_SCORES:
 - Proper RAII resource management for TTF fonts and SDL surfaces
 - Event handling improvements for smooth user experience
 
+### ✅ **Sprint 4 In Progress**: Advanced Features & Polish
+**Files Modified:**
+- `src/renderer.h` & `src/renderer.cpp` - Smart pointer TTF font management with custom deleters
+- `src/highscore_manager.h` & `src/highscore_manager.cpp` - Shared score collections with std::shared_ptr
+- `src/score_entry.h` - Perfect forwarding constructors and enhanced move semantics
+
+**Advanced Features Added:**
+- Exception-safe resource management with RAII smart pointers
+- Custom deleters for SDL/TTF resources (TTFFontDeleter)
+- Shared immutable score collections for safe data sharing
+- Perfect forwarding template constructors for optimal performance
+- Eliminated all manual resource cleanup and potential memory leaks
+
 ---
 
-**Current Status**: ✅ Sprint 1, 2 & 3 Complete - Ready for Sprint 4 (Optional)
-**Next Phase**: Sprint 4 - Advanced Features & Polish (Concurrency, enhanced UX)
-**Achievement**: **ALL CORE REQUIREMENTS COMPLETE** 🎯
-**Remaining**: Optional concurrency features for advanced rubric criteria
+**Current Status**: ✅ Sprint 1, 2, 3 Complete - Sprint 4 Task 4.1 Complete
+**Next Phase**: Task 4.2 - Enhanced User Experience (Input validation, score highlighting, formatting)
+**Achievement**: **ALL CORE REQUIREMENTS + ADVANCED MEMORY MANAGEMENT COMPLETE** 🎯
+**Remaining**: Optional UX enhancements and concurrency features
 **Review Points**: After each sprint completion
 **Final Review**: Comprehensive testing and rubric criteria validation

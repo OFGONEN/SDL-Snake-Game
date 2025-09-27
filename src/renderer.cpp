@@ -186,30 +186,33 @@ void Renderer::RenderGameOverScreen(int score, bool isHighScore) {
 void Renderer::RenderTextTTF(const std::string& text, int x, int y, SDL_Color color, bool large) {
   if (text.empty()) return;
 
-  TTF_Font* currentFont = large ? large_font : font;
+  TTF_Font* currentFont = large ? large_font.get() : font.get();
   if (currentFont == nullptr) {
     std::cerr << "Font not loaded!\n";
     return;
   }
 
-  SDL_Surface* textSurface = TTF_RenderUTF8_Solid(currentFont, text.c_str(), color);
-  if (textSurface == nullptr) {
+  // Use smart pointers for automatic resource management
+  std::unique_ptr<SDL_Surface, void(*)(SDL_Surface*)> textSurface(
+    TTF_RenderUTF8_Solid(currentFont, text.c_str(), color), SDL_FreeSurface);
+
+  if (!textSurface) {
     std::cerr << "Unable to render text surface! TTF_Error: " << TTF_GetError() << "\n";
     return;
   }
 
-  SDL_Texture* textTexture = SDL_CreateTextureFromSurface(sdl_renderer, textSurface);
-  if (textTexture == nullptr) {
+  std::unique_ptr<SDL_Texture, void(*)(SDL_Texture*)> textTexture(
+    SDL_CreateTextureFromSurface(sdl_renderer, textSurface.get()), SDL_DestroyTexture);
+
+  if (!textTexture) {
     std::cerr << "Unable to create texture from rendered text! SDL_Error: " << SDL_GetError() << "\n";
-    SDL_FreeSurface(textSurface);
     return;
   }
 
   SDL_Rect renderQuad = {x, y, textSurface->w, textSurface->h};
-  SDL_RenderCopy(sdl_renderer, textTexture, nullptr, &renderQuad);
+  SDL_RenderCopy(sdl_renderer, textTexture.get(), nullptr, &renderQuad);
 
-  SDL_DestroyTexture(textTexture);
-  SDL_FreeSurface(textSurface);
+  // Resources automatically cleaned up by smart pointers
 }
 
 void Renderer::ClearScreen() {
@@ -241,15 +244,14 @@ void Renderer::LoadFonts() {
   };
 
   for (int i = 0; fontPaths[i] != nullptr; ++i) {
-    font = TTF_OpenFont(fontPaths[i], kFontSize);
-    if (font != nullptr) {
-      large_font = TTF_OpenFont(fontPaths[i], kLargeFontSize);
-      if (large_font != nullptr) {
+    font.reset(TTF_OpenFont(fontPaths[i], kFontSize));
+    if (font) {
+      large_font.reset(TTF_OpenFont(fontPaths[i], kLargeFontSize));
+      if (large_font) {
         std::cout << "Loaded font: " << fontPaths[i] << "\n";
         return;
       } else {
-        TTF_CloseFont(font);
-        font = nullptr;
+        font.reset(); // Automatically calls TTF_CloseFont via custom deleter
       }
     }
   }
@@ -259,12 +261,7 @@ void Renderer::LoadFonts() {
 }
 
 void Renderer::CleanupFonts() {
-  if (font != nullptr) {
-    TTF_CloseFont(font);
-    font = nullptr;
-  }
-  if (large_font != nullptr) {
-    TTF_CloseFont(large_font);
-    large_font = nullptr;
-  }
+  // Smart pointers automatically handle cleanup via custom deleter
+  font.reset();
+  large_font.reset();
 }

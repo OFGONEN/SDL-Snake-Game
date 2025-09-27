@@ -7,8 +7,21 @@
 #include "score_entry.h"
 #include <vector>
 #include <string>
+#include <memory>
 
 enum class GameState;
+
+// Custom deleter for TTF_Font
+struct TTFFontDeleter {
+  void operator()(TTF_Font* font) const {
+    if (font) {
+      TTF_CloseFont(font);
+    }
+  }
+};
+
+// Smart pointer type alias for TTF fonts
+using TTFFontPtr = std::unique_ptr<TTF_Font, TTFFontDeleter>;
 
 class Renderer {
 public:
@@ -27,8 +40,8 @@ public:
 private:
   SDL_Window *sdl_window;
   SDL_Renderer *sdl_renderer;
-  TTF_Font *font;
-  TTF_Font *large_font;
+  TTFFontPtr font;
+  TTFFontPtr large_font;
 
   const std::size_t screen_width;
   const std::size_t screen_height;

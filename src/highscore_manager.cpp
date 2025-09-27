@@ -95,6 +95,13 @@ std::vector<ScoreEntry> HighScoreManager::GetTopScores(std::size_t count) const 
     return std::vector<ScoreEntry>(scores_.begin(), scores_.begin() + actualCount);
 }
 
+std::shared_ptr<const std::vector<ScoreEntry>> HighScoreManager::GetSharedTopScores(std::size_t count) const {
+    std::size_t actualCount = std::min(count, scores_.size());
+    auto sharedScores = std::make_shared<std::vector<ScoreEntry>>(
+        scores_.begin(), scores_.begin() + actualCount);
+    return sharedScores;
+}
+
 bool HighScoreManager::IsHighScore(int score) const {
     if (scores_.size() < kMaxScores) {
         return true;

@@ -2,6 +2,7 @@
 #define SCORE_ENTRY_H
 
 #include <string>
+#include <utility>
 
 struct ScoreEntry {
 public:
@@ -11,6 +12,11 @@ public:
 
     ScoreEntry() = default;
     ScoreEntry(const std::string& name, int s, const std::string& time);
+
+    // Perfect forwarding constructor for efficient construction
+    template<typename Name, typename Time>
+    ScoreEntry(Name&& name, int s, Time&& time)
+        : playerName(std::forward<Name>(name)), score(s), timestamp(std::forward<Time>(time)) {}
 
     ScoreEntry(const ScoreEntry& other) = default;
     ScoreEntry& operator=(const ScoreEntry& other) = default;
