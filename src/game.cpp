@@ -26,6 +26,10 @@ void Game::Run(Controller const &controller, Renderer &renderer,
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
       if (e.type == SDL_QUIT) {
+        // Save score if quitting during gameplay
+        if (currentState == GameState::PLAYING) {
+          SaveCurrentScore();
+        }
         running = false;
         continue;
       }
@@ -109,6 +113,7 @@ void Game::PlaceFood() {
 void Game::Update() {
   if (!snake.alive) {
     if (currentState == GameState::PLAYING) {
+      SaveCurrentScore(); // Save score before transitioning
       TransitionToState(GameState::GAME_OVER);
     }
     return;
@@ -126,6 +131,12 @@ void Game::Update() {
     // Grow snake and increase speed.
     snake.GrowBody();
     snake.speed += 0.02;
+  }
+}
+
+void Game::SaveCurrentScore() {
+  if (!playerName.empty() && score > 0) {
+    highScoreManager->SaveScore(playerName, score);
   }
 }
 
@@ -148,24 +159,15 @@ void Game::UpdatePlaying(const Controller& controller, const SDL_Event& event) {
 }
 
 void Game::UpdateGameOver(const Controller& controller, const SDL_Event& event) {
-  // Save high score if qualified (only do this once)
-  static bool scoreSaved = false;
-  if (!scoreSaved && !playerName.empty() && highScoreManager->IsHighScore(score)) {
-    highScoreManager->SaveScore(playerName, score);
-    scoreSaved = true;
-  }
-
   // Handle input for navigation
   if (event.type == SDL_KEYDOWN) {
     switch (event.key.keysym.sym) {
     case SDLK_SPACE:
       TransitionToState(GameState::SHOW_SCORES);
-      scoreSaved = false; // Reset for next game
       break;
     case SDLK_r:
       ResetGame();
       TransitionToState(GameState::ENTER_NAME);
-      scoreSaved = false; // Reset for next game
       break;
     }
   }

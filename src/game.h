@@ -43,6 +43,7 @@ private:
 
   void PlaceFood();
   void Update();
+  void SaveCurrentScore();
   void UpdateEnterName(const Controller& controller, const SDL_Event& event);
   void UpdatePlaying(const Controller& controller, const SDL_Event& event);
   void UpdateGameOver(const Controller& controller, const SDL_Event& event);
