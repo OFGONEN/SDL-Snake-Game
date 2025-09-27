@@ -5,7 +5,8 @@
 Game::Game(std::size_t grid_width, std::size_t grid_height)
     : snake(grid_width, grid_height), engine(dev()),
       random_w(0, static_cast<int>(grid_width - 1)),
-      random_h(0, static_cast<int>(grid_height - 1)) {
+      random_h(0, static_cast<int>(grid_height - 1)),
+      highScoreManager(std::make_unique<HighScoreManager>()) {
   PlaceFood();
 }
 
@@ -21,9 +22,30 @@ void Game::Run(Controller const &controller, Renderer &renderer,
   while (running) {
     frame_start = SDL_GetTicks();
 
-    // Input, Update, Render - the main game loop.
-    controller.HandleInput(running, snake);
-    Update();
+    // State-based input and update handling
+    switch (currentState) {
+    case GameState::ENTER_NAME:
+      UpdateEnterName(controller);
+      break;
+    case GameState::PLAYING:
+      UpdatePlaying(controller);
+      break;
+    case GameState::GAME_OVER:
+      UpdateGameOver(controller);
+      break;
+    case GameState::SHOW_SCORES:
+      UpdateShowScores(controller);
+      break;
+    }
+
+    // Check for quit events in all states
+    SDL_Event e;
+    while (SDL_PollEvent(&e)) {
+      if (e.type == SDL_QUIT) {
+        running = false;
+      }
+    }
+
     renderer.Render(snake, food);
 
     frame_end = SDL_GetTicks();
@@ -65,8 +87,12 @@ void Game::PlaceFood() {
 }
 
 void Game::Update() {
-  if (!snake.alive)
+  if (!snake.alive) {
+    if (currentState == GameState::PLAYING) {
+      TransitionToState(GameState::GAME_OVER);
+    }
     return;
+  }
 
   snake.Update();
 
@@ -83,5 +109,80 @@ void Game::Update() {
   }
 }
 
+void Game::UpdateEnterName(const Controller& controller) {
+  bool inputComplete = false;
+  controller.HandleTextInput(playerName, inputComplete);
+
+  if (inputComplete) {
+    if (!playerName.empty()) {
+      TransitionToState(GameState::PLAYING);
+    }
+  }
+}
+
+void Game::UpdatePlaying(const Controller& controller) {
+  bool running = true;
+  controller.HandleInput(running, snake);
+  if (!running) {
+    // Handle quit in main loop
+    return;
+  }
+  Update();
+}
+
+void Game::UpdateGameOver(const Controller& controller) {
+  // Save high score if qualified
+  if (!playerName.empty() && highScoreManager->IsHighScore(score)) {
+    highScoreManager->SaveScore(playerName, score);
+  }
+
+  // Wait for input to show scores or restart
+  SDL_Event e;
+  while (SDL_PollEvent(&e)) {
+    if (e.type == SDL_KEYDOWN) {
+      switch (e.key.keysym.sym) {
+      case SDLK_SPACE:
+        TransitionToState(GameState::SHOW_SCORES);
+        break;
+      case SDLK_r:
+        ResetGame();
+        TransitionToState(GameState::ENTER_NAME);
+        break;
+      }
+    }
+  }
+}
+
+void Game::UpdateShowScores(const Controller& controller) {
+  // Wait for input to restart
+  SDL_Event e;
+  while (SDL_PollEvent(&e)) {
+    if (e.type == SDL_KEYDOWN) {
+      switch (e.key.keysym.sym) {
+      case SDLK_r:
+        ResetGame();
+        TransitionToState(GameState::ENTER_NAME);
+        break;
+      case SDLK_ESCAPE:
+        TransitionToState(GameState::GAME_OVER);
+        break;
+      }
+    }
+  }
+}
+
+void Game::TransitionToState(GameState newState) {
+  currentState = newState;
+}
+
+void Game::ResetGame() {
+  score = 0;
+  playerName.clear();
+  snake = Snake(random_w.max() + 1, random_h.max() + 1);
+  PlaceFood();
+}
+
 int Game::GetScore() const { return score; }
 int Game::GetSize() const { return snake.size; }
+GameState Game::GetState() const { return currentState; }
+const std::string& Game::GetPlayerName() const { return playerName; }
