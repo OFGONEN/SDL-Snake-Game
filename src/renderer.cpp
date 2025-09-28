@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 
 Renderer::Renderer(const std::size_t screen_width,
                    const std::size_t screen_height,
@@ -298,4 +299,168 @@ void Renderer::CleanupFonts() {
   // Smart pointers automatically handle cleanup via custom deleter
   font.reset();
   large_font.reset();
+}
+
+void Renderer::RenderPlayingWithObstacles(const Snake& snake, const SDL_Point& food,
+                                         const ObstacleManager& obstacleManager) {
+  SDL_Rect block;
+  block.w = screen_width / grid_width;
+  block.h = screen_height / grid_height;
+
+  // Clear screen
+  ClearScreen();
+
+  // Render food
+  SDL_SetRenderDrawColor(sdl_renderer, 0xFF, 0xCC, 0x00, 0xFF);
+  block.x = food.x * block.w;
+  block.y = food.y * block.h;
+  SDL_RenderFillRect(sdl_renderer, &block);
+
+  // Render obstacles
+  RenderObstacles(obstacleManager);
+
+  // Render snake's body
+  SDL_SetRenderDrawColor(sdl_renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+  for (SDL_Point const &point : snake.body) {
+    block.x = point.x * block.w;
+    block.y = point.y * block.h;
+    SDL_RenderFillRect(sdl_renderer, &block);
+  }
+
+  // Render snake's head
+  block.x = static_cast<int>(snake.head_x) * block.w;
+  block.y = static_cast<int>(snake.head_y) * block.h;
+  if (snake.alive) {
+    SDL_SetRenderDrawColor(sdl_renderer, 0x00, 0x7A, 0xCC, 0xFF);
+  } else {
+    SDL_SetRenderDrawColor(sdl_renderer, 0xFF, 0x00, 0x00, 0xFF);
+  }
+  SDL_RenderFillRect(sdl_renderer, &block);
+
+  // Update screen
+  PresentScreen();
+}
+
+void Renderer::RenderObstacles(const ObstacleManager& obstacleManager) const {
+  obstacleManager.RenderObstacles(sdl_renderer, screen_width, screen_height, grid_width, grid_height);
+}
+
+void Renderer::RenderObstacle(const Obstacle& obstacle) const {
+  SDL_Color color = GetObstacleColor(obstacle.GetType());
+  DrawObstacleCell(obstacle.GetX(), obstacle.GetY(), color);
+
+  // Add visual distinction for moving obstacles
+  if (obstacle.GetType() == ObstacleType::MOVING) {
+    const auto* moving_obstacle = static_cast<const MovingObstacle*>(&obstacle);
+    DrawMovingObstacleWithPattern(obstacle.GetX(), obstacle.GetY(), moving_obstacle->GetPattern());
+  }
+}
+
+void Renderer::RenderFixedObstacle(int x, int y) const {
+  SDL_Color color = GetFixedObstacleColor();
+  DrawObstacleCell(x, y, color);
+}
+
+void Renderer::RenderMovingObstacle(int x, int y, MovementPattern pattern) const {
+  SDL_Color color = GetMovingObstacleColor();
+  DrawObstacleCell(x, y, color);
+  DrawMovingObstacleWithPattern(x, y, pattern);
+}
+
+void Renderer::DrawObstacleCell(int x, int y, const SDL_Color& color) const {
+  SDL_Rect block;
+  block.w = screen_width / grid_width;
+  block.h = screen_height / grid_height;
+  block.x = x * block.w;
+  block.y = y * block.h;
+
+  SDL_SetRenderDrawColor(sdl_renderer, color.r, color.g, color.b, color.a);
+  SDL_RenderFillRect(sdl_renderer, &block);
+}
+
+void Renderer::DrawMovingObstacleWithPattern(int x, int y, MovementPattern pattern) const {
+  SDL_Rect block;
+  block.w = screen_width / grid_width;
+  block.h = screen_height / grid_height;
+  block.x = x * block.w;
+  block.y = y * block.h;
+
+  SDL_Color accent_color = GetMovingObstacleAccentColor();
+  SDL_SetRenderDrawColor(sdl_renderer, accent_color.r, accent_color.g, accent_color.b, accent_color.a);
+
+  // Add visual indicators based on movement pattern
+  switch (pattern) {
+    case MovementPattern::LINEAR_HORIZONTAL:
+      // Draw horizontal arrows indicating direction
+      SDL_RenderDrawLine(sdl_renderer, block.x + 2, block.y + block.h/2,
+                        block.x + block.w - 2, block.y + block.h/2);
+      // Arrow tips
+      SDL_RenderDrawLine(sdl_renderer, block.x + block.w - 6, block.y + block.h/2 - 2,
+                        block.x + block.w - 2, block.y + block.h/2);
+      SDL_RenderDrawLine(sdl_renderer, block.x + block.w - 6, block.y + block.h/2 + 2,
+                        block.x + block.w - 2, block.y + block.h/2);
+      break;
+
+    case MovementPattern::LINEAR_VERTICAL:
+      // Draw vertical arrows indicating direction
+      SDL_RenderDrawLine(sdl_renderer, block.x + block.w/2, block.y + 2,
+                        block.x + block.w/2, block.y + block.h - 2);
+      // Arrow tips
+      SDL_RenderDrawLine(sdl_renderer, block.x + block.w/2 - 2, block.y + block.h - 6,
+                        block.x + block.w/2, block.y + block.h - 2);
+      SDL_RenderDrawLine(sdl_renderer, block.x + block.w/2 + 2, block.y + block.h - 6,
+                        block.x + block.w/2, block.y + block.h - 2);
+      break;
+
+    case MovementPattern::CIRCULAR:
+      // Draw enhanced circle with rotating indicator
+      for (int i = 0; i < 12; ++i) {
+        float angle = (2.0f * M_PI * i) / 12.0f;
+        int cx = block.x + block.w/2;
+        int cy = block.y + block.h/2;
+        int radius = block.w/3;
+        int px = cx + static_cast<int>(radius * cos(angle));
+        int py = cy + static_cast<int>(radius * sin(angle));
+        SDL_RenderDrawPoint(sdl_renderer, px, py);
+      }
+      // Center dot
+      SDL_RenderDrawPoint(sdl_renderer, block.x + block.w/2, block.y + block.h/2);
+      break;
+
+    case MovementPattern::ZIGZAG:
+      // Draw enhanced zigzag pattern
+      SDL_RenderDrawLine(sdl_renderer, block.x + 2, block.y + block.h/3,
+                        block.x + block.w/2, block.y + 2*block.h/3);
+      SDL_RenderDrawLine(sdl_renderer, block.x + block.w/2, block.y + 2*block.h/3,
+                        block.x + block.w - 2, block.y + block.h/3);
+      // Add connecting lines for clearer pattern
+      SDL_RenderDrawLine(sdl_renderer, block.x + block.w/4, block.y + block.h/6,
+                        block.x + 3*block.w/4, block.y + 5*block.h/6);
+      break;
+
+    case MovementPattern::RANDOM_WALK:
+      // Draw scattered dots in a cross pattern
+      SDL_RenderDrawPoint(sdl_renderer, block.x + block.w/4, block.y + block.h/4);
+      SDL_RenderDrawPoint(sdl_renderer, block.x + 3*block.w/4, block.y + block.h/4);
+      SDL_RenderDrawPoint(sdl_renderer, block.x + block.w/2, block.y + block.h/2);
+      SDL_RenderDrawPoint(sdl_renderer, block.x + block.w/4, block.y + 3*block.h/4);
+      SDL_RenderDrawPoint(sdl_renderer, block.x + 3*block.w/4, block.y + 3*block.h/4);
+      // Add small connecting lines
+      SDL_RenderDrawLine(sdl_renderer, block.x + block.w/2 - 1, block.y + block.h/2,
+                        block.x + block.w/2 + 1, block.y + block.h/2);
+      SDL_RenderDrawLine(sdl_renderer, block.x + block.w/2, block.y + block.h/2 - 1,
+                        block.x + block.w/2, block.y + block.h/2 + 1);
+      break;
+  }
+}
+
+SDL_Color Renderer::GetObstacleColor(ObstacleType type) const {
+  switch (type) {
+    case ObstacleType::FIXED:
+      return GetFixedObstacleColor();
+    case ObstacleType::MOVING:
+      return GetMovingObstacleColor();
+    default:
+      return {128, 128, 128, 255}; // Gray fallback
+  }
 }

@@ -65,7 +65,7 @@ void Game::Run(Controller const &controller, Renderer &renderer,
       renderer.RenderNameInput(playerName);
       break;
     case GameState::PLAYING:
-      renderer.RenderPlaying(snake, food);
+      renderer.RenderPlayingWithObstacles(snake, food, *obstacleManager);
       break;
     case GameState::GAME_OVER:
       renderer.RenderGameOverScreen(score, highScoreManager->IsNewHighestScore(score));
