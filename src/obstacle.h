@@ -59,6 +59,10 @@ protected:
     // Protected helper methods
     void WrapPosition();
     bool IsValidPosition(int x, int y) const;
+
+public:
+    // Public helper for validation
+    bool IsValidPosition(int x, int y, int grid_w, int grid_h) const;
 };
 
 #endif

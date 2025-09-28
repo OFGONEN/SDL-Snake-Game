@@ -6,8 +6,10 @@ Game::Game(std::size_t grid_width, std::size_t grid_height)
     : snake(grid_width, grid_height), engine(dev()),
       random_w(0, static_cast<int>(grid_width - 1)),
       random_h(0, static_cast<int>(grid_height - 1)),
-      highScoreManager(std::make_unique<HighScoreManager>()) {
+      highScoreManager(std::make_unique<HighScoreManager>()),
+      obstacleManager(std::make_unique<ThreadedObstacleManager>(grid_width, grid_height)) {
   PlaceFood();
+  InitializeObstacleThreads();
 }
 
 void Game::Run(Controller const &controller, Renderer &renderer,
@@ -101,9 +103,8 @@ void Game::PlaceFood() {
   while (true) {
     x = random_w(engine);
     y = random_h(engine);
-    // Check that the location is not occupied by a snake item before placing
-    // food.
-    if (!snake.SnakeCell(x, y)) {
+    // Check that the location is not occupied by a snake item or obstacle before placing food
+    if (!snake.SnakeCell(x, y) && IsValidFoodPosition(x, y)) {
       food.x = x;
       food.y = y;
       return;
@@ -120,7 +121,25 @@ void Game::Update() {
     return;
   }
 
+  // Handle obstacle updates and spawning
+  obstacleManager->UpdateObstacleMovement();
+
+  // Calculate delta time for obstacle spawning (60 FPS = ~16.67ms per frame)
+  static const float frame_delta_time = 1.0f / 60.0f;
+  HandleObstacleSpawning(frame_delta_time);
+
   snake.Update();
+
+  // Check obstacle collisions
+  CheckObstacleCollisions();
+
+  if (!snake.alive) {
+    if (currentState == GameState::PLAYING) {
+      SaveCurrentScore();
+      TransitionToState(GameState::GAME_OVER);
+    }
+    return;
+  }
 
   int new_x = static_cast<int>(snake.head_x);
   int new_y = static_cast<int>(snake.head_y);
@@ -132,6 +151,9 @@ void Game::Update() {
     // Grow snake and increase speed.
     snake.GrowBody();
     snake.speed += 0.02;
+
+    // Update difficulty based on score
+    UpdateDifficulty();
   }
 }
 
@@ -197,6 +219,7 @@ void Game::ResetGame() {
   score = 0;
   playerName.clear();
   snake = Snake(random_w.max() + 1, random_h.max() + 1);
+  obstacleManager->ClearAllObstacles();
   PlaceFood();
 }
 
@@ -204,3 +227,32 @@ int Game::GetScore() const { return score; }
 int Game::GetSize() const { return snake.size; }
 GameState Game::GetState() const { return currentState; }
 const std::string& Game::GetPlayerName() const { return playerName; }
+
+void Game::CheckObstacleCollisions() {
+  if (obstacleManager->CheckCollisionWithSnake(snake)) {
+    snake.alive = false;
+  }
+}
+
+void Game::UpdateDifficulty() {
+  int difficulty_level = score / kDifficultyIncreaseInterval + 1;
+  obstacleManager->SetDifficultyLevel(difficulty_level);
+}
+
+void Game::HandleObstacleSpawning(float delta_time) {
+  if (obstacleManager->ShouldSpawnObstacle(delta_time)) {
+    obstacleManager->SpawnRandomObstacle();
+  }
+}
+
+void Game::InitializeObstacleThreads() {
+  obstacleManager->StartLifetimeThread();
+}
+
+void Game::ShutdownObstacleThreads() {
+  obstacleManager->StopLifetimeThread();
+}
+
+bool Game::IsValidFoodPosition(int x, int y) const {
+  return obstacleManager->IsValidFoodPosition(x, y);
+}

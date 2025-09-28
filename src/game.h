@@ -6,6 +6,7 @@
 #include "renderer.h"
 #include "snake.h"
 #include "highscore_manager.h"
+#include "threaded_obstacle_manager.h"
 #include <random>
 #include <string>
 #include <memory>
@@ -41,6 +42,14 @@ private:
   std::string playerName;
   std::unique_ptr<HighScoreManager> highScoreManager;
 
+  // Add threaded obstacle management
+  std::unique_ptr<ThreadedObstacleManager> obstacleManager;
+
+  // Configuration
+  static constexpr float kInitialSpawnRate = 0.3f; // obstacles per second
+  static constexpr float kSpawnRateIncrease = 0.1f; // increase per difficulty level
+  static constexpr int kDifficultyIncreaseInterval = 5; // Every 5 points
+
   void PlaceFood();
   void Update();
   void SaveCurrentScore();
@@ -51,6 +60,14 @@ private:
 
   void TransitionToState(GameState newState);
   void ResetGame();
+
+  // New obstacle-related methods
+  void CheckObstacleCollisions();
+  void UpdateDifficulty();
+  void HandleObstacleSpawning(float delta_time);
+  void InitializeObstacleThreads(); // Start ThreadedObstacleManager threads
+  void ShutdownObstacleThreads(); // Clean shutdown
+  bool IsValidFoodPosition(int x, int y) const;
 };
 
 #endif

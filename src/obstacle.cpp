@@ -63,3 +63,7 @@ void Obstacle::WrapPosition() {
 bool Obstacle::IsValidPosition(int x, int y) const {
     return x >= 0 && x < grid_width && y >= 0 && y < grid_height;
 }
+
+bool Obstacle::IsValidPosition(int x, int y, int grid_w, int grid_h) const {
+    return x >= 0 && x < grid_w && y >= 0 && y < grid_h;
+}
