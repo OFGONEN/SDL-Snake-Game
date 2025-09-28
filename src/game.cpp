@@ -1,4 +1,5 @@
 #include "game.h"
+#include "collision_detector.h"
 #include "SDL.h"
 #include <iostream>
 
@@ -229,7 +230,8 @@ GameState Game::GetState() const { return currentState; }
 const std::string& Game::GetPlayerName() const { return playerName; }
 
 void Game::CheckObstacleCollisions() {
-  if (obstacleManager->CheckCollisionWithSnake(snake)) {
+  // Use optimized collision detection with early exit
+  if (CollisionDetector::CheckCollisionOptimized(snake, *obstacleManager)) {
     snake.alive = false;
   }
 }

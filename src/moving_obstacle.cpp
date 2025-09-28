@@ -1,4 +1,5 @@
 #include "moving_obstacle.h"
+#include "movement_patterns.h"
 #include <random>
 
 MovingObstacle::MovingObstacle(int x, int y, int grid_width, int grid_height,
@@ -8,24 +9,17 @@ MovingObstacle::MovingObstacle(int x, int y, int grid_width, int grid_height,
 }
 
 void MovingObstacle::Update() {
-    // Movement only (main thread) - lifetime managed by background thread
-    switch (pattern) {
-        case MovementPattern::LINEAR_HORIZONTAL:
-            UpdateLinearHorizontal();
-            break;
-        case MovementPattern::LINEAR_VERTICAL:
-            UpdateLinearVertical();
-            break;
-        case MovementPattern::CIRCULAR:
-            UpdateCircular();
-            break;
-        case MovementPattern::ZIGZAG:
-            UpdateZigzag();
-            break;
-        case MovementPattern::RANDOM_WALK:
-            UpdateRandomWalk();
-            break;
-    }
+    // Use advanced movement pattern calculation with optimization
+    SDL_Point new_pos = MovementPatterns::MovementCalculator::ProcessMovement(
+        position, pattern, speed, movement_counter, direction, grid_width, grid_height);
+
+    // Validate and apply movement
+    position = MovementPatterns::ValidateMovement(
+        position,
+        [new_pos](const SDL_Point&) { return new_pos; },
+        grid_width, grid_height);
+
+    movement_counter += speed;
 }
 
 void MovingObstacle::Render(SDL_Renderer* renderer, std::size_t screen_width,
