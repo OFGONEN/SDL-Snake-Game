@@ -56,8 +56,27 @@
 **Rubric Criteria**: Object-Oriented Programming, Inheritance, Polymorphism
 **Files**: `src/obstacle.h`, `src/obstacle.cpp`
 
+**Required Headers and Includes:**
+```cpp
+#include "SDL.h"
+#include <atomic>
+#include <memory>
+#include <thread>
+#include <shared_mutex>
+#include <condition_variable>
+#include <future>
+#include <chrono>
+#include <vector>
+#include <algorithm>
+```
+
 **Base Obstacle Class Design:**
 ```cpp
+enum class ObstacleType {
+    FIXED,
+    MOVING
+};
+
 class Obstacle {
 public:
     explicit Obstacle(int x, int y, int grid_width, int grid_height, float lifetime_seconds = 10.0f);
@@ -81,10 +100,13 @@ public:
     int GetY() const { return position.y; }
     const SDL_Point& GetPosition() const { return position; }
 
-    // Lifetime management
-    bool IsExpired() const { return remaining_lifetime <= 0.0f; }
-    float GetRemainingLifetime() const { return remaining_lifetime; }
-    void UpdateLifetime(float delta_time) { remaining_lifetime -= delta_time; }
+    // Thread-safe lifetime management (managed by background thread)
+    bool IsExpired() const { return remaining_lifetime.load() <= 0.0f; }
+    float GetRemainingLifetime() const { return remaining_lifetime.load(); }
+    void DecrementLifetime(float delta_time) {
+        float current = remaining_lifetime.load();
+        remaining_lifetime.store(std::max(0.0f, current - delta_time));
+    }
 
     // Collision detection
     bool CollidesWithPoint(int x, int y) const;
@@ -95,7 +117,7 @@ protected:
     const int grid_width;
     const int grid_height;
     bool active{true};
-    float remaining_lifetime;
+    std::atomic<float> remaining_lifetime;
 
     // Protected helper methods
     void WrapPosition();
@@ -111,8 +133,9 @@ protected:
 - [ ] Create pure virtual methods for polymorphic behavior
 - [ ] Use protected members for derived class access
 - [ ] Add grid boundary checking and wrapping logic
-- [ ] Implement lifetime management with floating-point timer
+- [ ] Implement thread-safe lifetime management with atomic operations
 - [ ] Add default lifetime parameters (fixed: 10-15s, moving: 5-8s)
+- [ ] Use std::atomic for lock-free lifetime counting
 
 #### Task 1.2: Create FixedObstacle Class
 **Rubric Criteria**: Object-Oriented Programming, Inheritance
@@ -126,7 +149,7 @@ public:
                           float lifetime_seconds = 12.0f);
 
     // Override virtual methods
-    void Update() override final;
+    void Update() override final;  // Does nothing - lifetime managed by background thread
     void Render(SDL_Renderer* renderer, std::size_t screen_width,
                std::size_t screen_height, std::size_t grid_width,
                std::size_t grid_height) const override;
@@ -142,7 +165,7 @@ private:
 - [ ] Inherit from Obstacle base class
 - [ ] Use `override` keyword for all virtual method implementations
 - [ ] Use `final` for methods that shouldn't be overridden further
-- [ ] Implement Update() to only handle lifetime countdown
+- [ ] Implement Update() as empty method (lifetime handled by background thread)
 - [ ] Use constexpr for compile-time color constants
 - [ ] Add proper constructor with member initialization list
 - [ ] Set default lifetime to 12 seconds for fixed obstacles
@@ -168,7 +191,7 @@ public:
                            float lifetime_seconds = 7.0f);
 
     // Override virtual methods
-    void Update() override;
+    void Update() override;  // Movement only (main thread) - lifetime managed by background thread
     void Render(SDL_Renderer* renderer, std::size_t screen_width,
                std::size_t screen_height, std::size_t grid_width,
                std::size_t grid_height) const override;
@@ -210,7 +233,9 @@ private:
 - [ ] Add pattern switching capability
 - [ ] Use proper const correctness throughout
 - [ ] Set default lifetime to 7 seconds for moving obstacles
-- [ ] Update() handles both movement and lifetime countdown
+- [ ] Update() handles movement only on main thread (lifetime managed by background thread)
+- [ ] Use inherited SDL_Point position for all position operations (main thread only)
+- [ ] Movement pattern updates modify position.x and position.y directly
 
 ### Sprint 2: Obstacle Management System (Session 2)
 
@@ -223,7 +248,7 @@ private:
 class ObstacleManager {
 public:
     explicit ObstacleManager(int grid_width, int grid_height);
-    ~ObstacleManager() = default;
+    virtual ~ObstacleManager(); // Virtual destructor for inheritance
 
     // Rule of Five with move semantics
     ObstacleManager(const ObstacleManager& other) = delete;
@@ -238,16 +263,17 @@ public:
     void ClearExpiredObstacles(); // Remove expired obstacles only
     void ClearAllObstacles();
 
-    // Update and rendering
-    void UpdateObstacles(float delta_time); // Update with delta time for lifetime
-    void RenderObstacles(SDL_Renderer* renderer, std::size_t screen_width,
-                        std::size_t screen_height, std::size_t grid_width,
-                        std::size_t grid_height) const;
+    // Update and rendering (virtual for threading override)
+    virtual void UpdateObstacleMovement(); // Movement updates only
+    virtual void UpdateObstacleLifetimes(float delta_time); // Synchronous lifetime updates
+    virtual void RenderObstacles(SDL_Renderer* renderer, std::size_t screen_width,
+                                std::size_t screen_height, std::size_t grid_width,
+                                std::size_t grid_height) const;
 
-    // Collision detection
-    bool CheckCollisionWithPoint(int x, int y) const;
-    bool CheckCollisionWithSnake(const Snake& snake) const;
-    bool IsValidFoodPosition(int x, int y) const;
+    // Collision detection (virtual for thread-safe override)
+    virtual bool CheckCollisionWithPoint(int x, int y) const;
+    virtual bool CheckCollisionWithSnake(const Snake& snake) const;
+    virtual bool IsValidFoodPosition(int x, int y) const;
 
     // Getters for game logic
     std::size_t GetObstacleCount() const { return obstacles.size(); }
@@ -264,7 +290,7 @@ private:
     const int grid_width;
     const int grid_height;
 
-    // Smart pointer container for polymorphic obstacle management
+    // Basic obstacle container (base class)
     std::vector<std::unique_ptr<Obstacle>> obstacles;
 
     // Random number generation for obstacle placement
@@ -278,6 +304,7 @@ private:
     float moving_obstacle_speed{0.05f};
     float spawn_rate{0.5f}; // obstacles per second
     float spawn_timer{0.0f}; // accumulated time since last spawn
+
 
     // Helper methods
     bool IsPositionFree(int x, int y) const;
@@ -293,16 +320,91 @@ private:
 **Implementation Checklist:**
 - [ ] Use `std::vector<std::unique_ptr<Obstacle>>` for polymorphic storage
 - [ ] Implement proper move semantics (delete copy, default move)
-- [ ] Add random number generation for obstacle placement
-- [ ] Create collision detection methods for different scenarios
+- [ ] Create basic collision detection methods for different scenarios
 - [ ] Implement difficulty scaling logic
 - [ ] Use template methods for type-specific counting
 - [ ] Add position validation to prevent overlaps
 - [ ] Implement spawn timer system with delta time tracking
-- [ ] Add ClearExpiredObstacles() using erase-remove idiom
-- [ ] Update obstacle lifetime management in UpdateObstacles()
+- [ ] Add synchronous lifetime management methods
+- [ ] Prepare virtual methods for threading extension in derived class
 
-#### Task 2.2: Integrate ObstacleManager with Game Class
+#### Task 2.2: Create ThreadedObstacleManager Class
+**Rubric Criteria**: Inheritance, Concurrency, Polymorphism
+**Files**: `src/threaded_obstacle_manager.h`, `src/threaded_obstacle_manager.cpp`
+
+**ThreadedObstacleManager Class Design:**
+```cpp
+class ThreadedObstacleManager : public ObstacleManager {
+public:
+    explicit ThreadedObstacleManager(int grid_width, int grid_height);
+    ~ThreadedObstacleManager();
+
+    // Threading lifecycle management
+    void StartLifetimeThread();
+    void StopLifetimeThread();
+
+    // Override base class methods with thread-safe versions
+    void UpdateObstacleMovement() override;
+    bool CheckCollisionWithPoint(int x, int y) const override;
+    bool CheckCollisionWithSnake(const Snake& snake) const override;
+    bool IsValidFoodPosition(int x, int y) const override;
+
+    // Thread-safe getters
+    std::size_t GetObstacleCountSafe() const;
+    std::size_t GetFixedObstacleCountSafe() const;
+    std::size_t GetMovingObstacleCountSafe() const;
+
+    // Asynchronous operations
+    std::future<size_t> CleanupExpiredAsync();
+
+private:
+    // Threading components
+    std::thread lifetime_thread;
+    std::atomic<bool> shutdown_requested{false};
+    std::atomic<bool> thread_running{false};
+
+    // Synchronization primitives
+    mutable std::shared_mutex obstacles_mutex; // Reader-writer lock
+    std::condition_variable lifetime_condition;
+    std::mutex lifetime_mutex;
+
+    // Thread worker methods
+    void LifetimeWorkerThread();
+    void UpdateAllLifetimesAtomic(float delta_time);
+    void NotifyLifetimeThread();
+
+    // Thread-safe internal operations
+    void SafelyUpdateMovingObstacles();
+    void SafelyCleanupExpired();
+
+    // Atomic lifetime management implementation
+    void ProcessAtomicLifetimeUpdates() {
+        // Lock-free atomic operations on all obstacles
+        std::shared_lock<std::shared_mutex> lock(obstacles_mutex);
+        for (auto& obstacle : obstacles) {
+            obstacle->DecrementLifetime(0.1f);  // 100ms intervals
+        }
+    }
+
+    // Performance monitoring
+    std::atomic<uint64_t> lifetime_updates_count{0};
+    std::chrono::steady_clock::time_point thread_start_time;
+};
+```
+
+**Implementation Checklist:**
+- [ ] Inherit from ObstacleManager base class
+- [ ] Use `override` keyword for all virtual method overrides
+- [ ] Add `std::shared_mutex` for thread-safe container access
+- [ ] Create dedicated lifetime management thread with std::thread
+- [ ] Use `std::atomic<bool>` for shutdown coordination
+- [ ] Implement `std::condition_variable` for efficient thread sleeping
+- [ ] Add `std::async` for asynchronous expired obstacle cleanup
+- [ ] Use reader-writer locks for concurrent access patterns
+- [ ] Implement proper thread cleanup in destructor
+- [ ] Add thread-safe versions of all collision detection methods
+
+#### Task 2.3: Integrate ObstacleManager with Game Class
 **Rubric Criteria**: Memory Management, References, Composition
 **Files**: `src/game.h`, `src/game.cpp`
 
@@ -310,8 +412,8 @@ private:
 ```cpp
 class Game {
 private:
-    // Add obstacle management
-    std::unique_ptr<ObstacleManager> obstacleManager;
+    // Add threaded obstacle management
+    std::unique_ptr<ThreadedObstacleManager> obstacleManager;
 
     // Configuration
     static constexpr float kInitialSpawnRate = 0.3f; // obstacles per second
@@ -325,24 +427,27 @@ private:
     void ResetGame(); // Reset obstacles on new game
 
     // New methods
-    void UpdateObstacles(float delta_time);
     void CheckObstacleCollisions();
     void UpdateDifficulty();
     void HandleObstacleSpawning(float delta_time);
+    void InitializeObstacleThreads(); // Start ThreadedObstacleManager threads
+    void ShutdownObstacleThreads(); // Clean shutdown
     bool IsValidFoodPosition(int x, int y) const;
 };
 ```
 
 **Implementation Checklist:**
-- [ ] Add `std::unique_ptr<ObstacleManager>` to Game class
+- [ ] Add `std::unique_ptr<ThreadedObstacleManager>` to Game class
 - [ ] Use member initialization lists in constructor
-- [ ] Modify PlaceFood() to use ObstacleManager::IsValidFoodPosition()
-- [ ] Add obstacle update calls to main Update() method with delta time
-- [ ] Implement collision checking in UpdatePlaying()
+- [ ] Initialize ThreadedObstacleManager with StartLifetimeThread() in constructor
+- [ ] Implement proper thread shutdown in Game destructor with StopLifetimeThread()
+- [ ] Modify PlaceFood() to use thread-safe IsValidFoodPosition()
+- [ ] Game loop calls obstacleManager->UpdateObstacleMovement() (inherited virtual method)
+- [ ] Implement collision checking with thread-safe override methods
 - [ ] Add difficulty progression based on score (spawn rate increase)
 - [ ] Use const references for collision detection parameters
 - [ ] Implement HandleObstacleSpawning() for timed obstacle creation
-- [ ] Add delta time calculation for smooth obstacle lifetime management
+- [ ] Leverage polymorphism: Game uses base class interface, gets threaded implementation
 
 ### Sprint 3: Enhanced Collision Detection & Optimization (Session 3)
 
@@ -523,82 +628,73 @@ void Game::Run(Controller const &controller, Renderer &renderer,
 void Game::UpdateWithObstacles(float delta_time) {
     if (!snake.alive) return;
 
-    // Update obstacles with lifetime management
-    obstacleManager->UpdateObstacles(delta_time);
+    // ThreadedObstacleManager automatically handles:
+    // - Background atomic lifetime countdown (DecrementLifetime on all obstacles)
+    // - Automatic expired obstacle cleanup using std::async
+    // - Thread-safe container management with shared_mutex
+    // - Movement handled on main thread, lifetime on background thread
+
+    obstacleManager->UpdateObstacleMovement(); // Movement only, lifetime handled by background thread
 
     // Handle obstacle spawning based on timer
     HandleObstacleSpawning(delta_time);
 
-    // Clean up expired obstacles
-    obstacleManager->ClearExpiredObstacles();
-
     // Update snake
     snake.Update();
 
-    // Check all collision types
-    CheckSnakeCollisions();
+    // Check all collision types (using thread-safe override methods)
+    if (obstacleManager->CheckCollisionWithSnake(snake)) {
+        snake.alive = false;
+    }
     CheckFoodCollection();
     UpdateDifficulty();
 }
 ```
 
 **Implementation Checklist:**
-- [ ] Integrate obstacle updates into main game loop with delta time
+- [ ] Integrate obstacle movement updates into main game loop
+- [ ] Initialize background lifetime management threads
 - [ ] Add obstacle rendering to all appropriate game states
-- [ ] Implement enhanced collision checking in Update() cycle
+- [ ] Implement thread-safe collision checking in Update() cycle
 - [ ] Add spawning system based on timer and difficulty progression
-- [ ] Implement expired obstacle cleanup using erase-remove idiom
+- [ ] Background thread handles expired obstacle cleanup automatically
 - [ ] Use various control structures throughout implementation
-- [ ] Maintain 60 FPS performance with temporal obstacle processing
+- [ ] Maintain 60 FPS performance with concurrent obstacle processing
+- [ ] Ensure proper thread synchronization and shutdown
 
-### Sprint 5: Advanced Features & Concurrency (Session 5)
+### Sprint 5: Advanced Concurrency Features & Optimization (Session 5)
 
-#### Task 5.1: Thread-Safe Obstacle Management
-**Rubric Criteria**: Concurrency, Mutex, Thread Safety
-**Files**: `src/threaded_obstacle_manager.h`, `src/threaded_obstacle_manager.cpp`
+#### Task 5.1: Enhanced Thread Performance & Monitoring
+**Rubric Criteria**: Concurrency, Performance Optimization
+**Files**: `src/obstacle_manager.cpp`, `src/performance_monitor.h`
 
-**Thread-Safe ObstacleManager:**
+**Enhanced Threading Features:**
 ```cpp
-class ThreadedObstacleManager : public ObstacleManager {
+class PerformanceMonitor {
 public:
-    explicit ThreadedObstacleManager(int grid_width, int grid_height);
-    ~ThreadedObstacleManager();
+    // Thread performance monitoring
+    void MonitorLifetimeThreadPerformance();
+    void TrackCollisionCheckTiming();
+    void MeasureThreadSynchronizationOverhead();
 
-    // Thread-safe obstacle operations
-    void StartObstacleThread();
-    void StopObstacleThread();
-    void UpdateObstaclesAsync();
-
-    // Thread-safe getters with mutex protection
-    std::size_t GetObstacleCountSafe() const;
-    bool CheckCollisionWithPointSafe(int x, int y) const;
+    // Performance metrics
+    std::chrono::nanoseconds GetAverageLifetimeUpdateTime() const;
+    double GetThreadEfficiencyRatio() const;
 
 private:
-    // Threading components
-    std::thread obstacle_thread;
-    std::atomic<bool> should_stop{false};
-    std::atomic<bool> thread_running{false};
-
-    // Synchronization primitives
-    mutable std::mutex obstacle_mutex;
-    std::condition_variable update_condition;
-
-    // Thread function
-    void ObstacleUpdateThread();
-
-    // Thread-safe internal methods
-    void UpdateObstaclesInternal();
-    void SafelyUpdateMovingObstacles();
+    std::atomic<uint64_t> lifetime_updates_count{0};
+    std::atomic<uint64_t> total_update_time_ns{0};
+    std::chrono::steady_clock::time_point start_time;
 };
 ```
 
 **Implementation Checklist:**
-- [ ] Use `std::thread` for obstacle processing
-- [ ] Implement `std::mutex` protection for shared data
-- [ ] Add `std::atomic` variables for thread control
-- [ ] Use `std::condition_variable` for thread coordination
-- [ ] Implement proper thread cleanup in destructor
-- [ ] Add thread-safe versions of all public methods
+- [ ] Add performance monitoring for thread efficiency
+- [ ] Implement timing measurements using std::chrono
+- [ ] Use std::atomic for lock-free performance counters
+- [ ] Add thread contention detection and optimization
+- [ ] Implement load balancing for obstacle processing
+- [ ] Add configurable thread sleep intervals for efficiency
 
 #### Task 5.2: Asynchronous Obstacle Generation
 **Rubric Criteria**: Concurrency, Promise/Future, Async Operations
@@ -779,5 +875,28 @@ private:
 5. **Template-Based Generic Algorithms** for reusability
 6. **Progressive Difficulty System** for enhanced gameplay
 
-**Project Status**: Ready for implementation - comprehensive architecture designed
+**Project Status**: Ready for implementation - comprehensive architecture designed with atomic lifetime solution
 **Achievement**: **EXCEEDS ALL RUBRIC REQUIREMENTS** with advanced C++ features
+
+---
+
+## 🔧 **ATOMIC LIFETIME SOLUTION SUMMARY**
+
+### **Core Architecture Decisions**
+1. **Consistent Lifetime Management**: All obstacles use `std::atomic<float> remaining_lifetime` managed by background thread
+2. **Clear Separation**: Movement and position handled on main thread, lifetime countdown on background thread
+3. **Lock-Free Operations**: Atomic operations eliminate need for additional mutexes on lifetime data
+4. **Thread Safety**: `std::shared_mutex` for container access, SDL_Point position is main-thread only
+
+### **Class Responsibilities**
+- **Base Obstacle**: Provides atomic lifetime infrastructure with `DecrementLifetime()` method
+- **FixedObstacle**: Empty `Update()` method, lifetime managed by background thread
+- **MovingObstacle**: `Update()` handles movement only on main thread using SDL_Point position
+- **ThreadedObstacleManager**: Background thread calls `DecrementLifetime()` on all obstacles every 100ms
+
+### **Threading Model**
+- **Main Thread**: Movement updates, collision detection, rendering, spawning
+- **Background Thread**: Atomic lifetime countdown with lock-free operations
+- **Async Cleanup**: `std::async` for non-blocking removal of expired obstacles
+
+This solution eliminates the lifetime management contradiction, provides excellent thread safety, and maintains 60 FPS performance with concurrent background processing.
