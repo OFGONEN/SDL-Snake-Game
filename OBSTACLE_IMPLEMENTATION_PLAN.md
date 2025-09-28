@@ -8,23 +8,23 @@
 
 ## User Stories
 
-### User Story 1: Fixed Obstacles
+### User Story 1: Temporary Fixed Obstacles
 **As a** player
-**I want to** encounter static obstacles on the game board
-**So that** I need to navigate around barriers while collecting food
+**I want to** encounter static obstacles that appear and disappear over time
+**So that** I need to adapt my strategy as the playing field changes dynamically
 
 **Acceptance Criteria:**
-- [ ] Fixed obstacles are placed randomly on the game board at game start
+- [ ] Fixed obstacles spawn randomly during gameplay at timed intervals
 - [ ] Obstacles are visually distinct from snake and food (different color/texture)
 - [ ] Snake dies when colliding with fixed obstacles
 - [ ] Food cannot spawn on obstacle locations
-- [ ] Number of obstacles increases with score progression
-- [ ] Obstacles persist throughout the game session
+- [ ] Obstacles have limited lifespan (5-15 seconds) before disappearing
+- [ ] New obstacles spawn continuously to maintain challenge level
 
-### User Story 2: Moving Obstacles
+### User Story 2: Temporary Moving Obstacles
 **As a** player
-**I want to** face dynamic moving obstacles
-**So that** the game becomes progressively more challenging and unpredictable
+**I want to** face dynamic moving obstacles that have limited duration
+**So that** the game becomes progressively more challenging with constantly changing patterns
 
 **Acceptance Criteria:**
 - [ ] Moving obstacles patrol in predictable patterns (linear, circular, zigzag)
@@ -33,19 +33,20 @@
 - [ ] Snake dies when colliding with moving obstacles
 - [ ] Moving obstacles avoid colliding with each other
 - [ ] Movement speed configurable and increases with game progression
+- [ ] Moving obstacles have shorter lifespan (3-10 seconds) than fixed obstacles
 
-### User Story 3: Progressive Difficulty
+### User Story 3: Dynamic Obstacle Spawning
 **As a** player
-**I want** obstacle difficulty to increase as my score improves
-**So that** the game remains challenging throughout long sessions
+**I want** obstacle difficulty to increase as my score improves through more frequent spawning
+**So that** the game remains challenging with constantly evolving obstacles
 
 **Acceptance Criteria:**
-- [ ] More obstacles spawn as score increases
+- [ ] Obstacle spawn frequency increases with score progression
 - [ ] Moving obstacle speed increases with progression
-- [ ] New obstacle types unlock at score milestones
-- [ ] Maximum obstacle density prevents impossible scenarios
-- [ ] Difficulty progression is smooth and predictable
-- [ ] Player can see obstacle count/difficulty in UI
+- [ ] Obstacle lifetime decreases at higher difficulty levels (faster turnover)
+- [ ] Multiple obstacles can exist simultaneously with overlapping lifetimes
+- [ ] Spawn timing becomes more unpredictable at higher scores
+- [ ] Maximum simultaneous obstacle limit prevents impossible scenarios
 
 ## Technical Implementation Plan
 
@@ -59,7 +60,7 @@
 ```cpp
 class Obstacle {
 public:
-    explicit Obstacle(int x, int y, int grid_width, int grid_height);
+    explicit Obstacle(int x, int y, int grid_width, int grid_height, float lifetime_seconds = 10.0f);
     virtual ~Obstacle() = default;
 
     // Rule of Five implementation
@@ -80,6 +81,11 @@ public:
     int GetY() const { return position.y; }
     const SDL_Point& GetPosition() const { return position; }
 
+    // Lifetime management
+    bool IsExpired() const { return remaining_lifetime <= 0.0f; }
+    float GetRemainingLifetime() const { return remaining_lifetime; }
+    void UpdateLifetime(float delta_time) { remaining_lifetime -= delta_time; }
+
     // Collision detection
     bool CollidesWithPoint(int x, int y) const;
     virtual bool CollidesWithRect(const SDL_Rect& rect) const;
@@ -89,6 +95,7 @@ protected:
     const int grid_width;
     const int grid_height;
     bool active{true};
+    float remaining_lifetime;
 
     // Protected helper methods
     void WrapPosition();
@@ -104,6 +111,8 @@ protected:
 - [ ] Create pure virtual methods for polymorphic behavior
 - [ ] Use protected members for derived class access
 - [ ] Add grid boundary checking and wrapping logic
+- [ ] Implement lifetime management with floating-point timer
+- [ ] Add default lifetime parameters (fixed: 10-15s, moving: 5-8s)
 
 #### Task 1.2: Create FixedObstacle Class
 **Rubric Criteria**: Object-Oriented Programming, Inheritance
@@ -113,7 +122,8 @@ protected:
 ```cpp
 class FixedObstacle : public Obstacle {
 public:
-    explicit FixedObstacle(int x, int y, int grid_width, int grid_height);
+    explicit FixedObstacle(int x, int y, int grid_width, int grid_height,
+                          float lifetime_seconds = 12.0f);
 
     // Override virtual methods
     void Update() override final;
@@ -124,6 +134,7 @@ public:
 
 private:
     static constexpr SDL_Color kFixedObstacleColor{128, 64, 0, 255}; // Brown
+    static constexpr float kDefaultLifetime = 12.0f; // 12 seconds default
 };
 ```
 
@@ -131,9 +142,10 @@ private:
 - [ ] Inherit from Obstacle base class
 - [ ] Use `override` keyword for all virtual method implementations
 - [ ] Use `final` for methods that shouldn't be overridden further
-- [ ] Implement static rendering (Update() does nothing)
+- [ ] Implement Update() to only handle lifetime countdown
 - [ ] Use constexpr for compile-time color constants
 - [ ] Add proper constructor with member initialization list
+- [ ] Set default lifetime to 12 seconds for fixed obstacles
 
 #### Task 1.3: Create MovingObstacle Class with Movement Patterns
 **Rubric Criteria**: Object-Oriented Programming, Template Functions
@@ -152,7 +164,8 @@ enum class MovementPattern {
 class MovingObstacle : public Obstacle {
 public:
     explicit MovingObstacle(int x, int y, int grid_width, int grid_height,
-                           MovementPattern pattern = MovementPattern::LINEAR_HORIZONTAL);
+                           MovementPattern pattern = MovementPattern::LINEAR_HORIZONTAL,
+                           float lifetime_seconds = 7.0f);
 
     // Override virtual methods
     void Update() override;
@@ -173,6 +186,7 @@ private:
     float movement_counter{0.0f}; // For circular and complex patterns
 
     static constexpr SDL_Color kMovingObstacleColor{255, 165, 0, 255}; // Orange
+    static constexpr float kDefaultLifetime = 7.0f; // 7 seconds default
 
     // Movement pattern implementations
     void UpdateLinearHorizontal();
@@ -195,6 +209,8 @@ private:
 - [ ] Implement circular movement with trigonometry
 - [ ] Add pattern switching capability
 - [ ] Use proper const correctness throughout
+- [ ] Set default lifetime to 7 seconds for moving obstacles
+- [ ] Update() handles both movement and lifetime countdown
 
 ### Sprint 2: Obstacle Management System (Session 2)
 
@@ -216,13 +232,14 @@ public:
     ObstacleManager& operator=(ObstacleManager&& other) noexcept = default;
 
     // Obstacle management
-    void AddFixedObstacle(int x, int y);
-    void AddMovingObstacle(int x, int y, MovementPattern pattern);
-    void GenerateRandomObstacles(int fixed_count, int moving_count);
+    void AddFixedObstacle(int x, int y, float lifetime = 12.0f);
+    void AddMovingObstacle(int x, int y, MovementPattern pattern, float lifetime = 7.0f);
+    void SpawnRandomObstacle(); // Single obstacle spawning
+    void ClearExpiredObstacles(); // Remove expired obstacles only
     void ClearAllObstacles();
 
     // Update and rendering
-    void UpdateObstacles();
+    void UpdateObstacles(float delta_time); // Update with delta time for lifetime
     void RenderObstacles(SDL_Renderer* renderer, std::size_t screen_width,
                         std::size_t screen_height, std::size_t grid_width,
                         std::size_t grid_height) const;
@@ -237,9 +254,11 @@ public:
     std::size_t GetFixedObstacleCount() const;
     std::size_t GetMovingObstacleCount() const;
 
-    // Configuration
+    // Spawning configuration
+    void SetSpawnRate(float obstacles_per_second);
     void SetDifficultyLevel(int level);
     void SetMovingObstacleSpeed(float speed);
+    bool ShouldSpawnObstacle(float delta_time); // Check if spawn timer elapsed
 
 private:
     const int grid_width;
@@ -257,6 +276,8 @@ private:
     // Configuration
     int difficulty_level{1};
     float moving_obstacle_speed{0.05f};
+    float spawn_rate{0.5f}; // obstacles per second
+    float spawn_timer{0.0f}; // accumulated time since last spawn
 
     // Helper methods
     bool IsPositionFree(int x, int y) const;
@@ -277,6 +298,9 @@ private:
 - [ ] Implement difficulty scaling logic
 - [ ] Use template methods for type-specific counting
 - [ ] Add position validation to prevent overlaps
+- [ ] Implement spawn timer system with delta time tracking
+- [ ] Add ClearExpiredObstacles() using erase-remove idiom
+- [ ] Update obstacle lifetime management in UpdateObstacles()
 
 #### Task 2.2: Integrate ObstacleManager with Game Class
 **Rubric Criteria**: Memory Management, References, Composition
@@ -290,9 +314,9 @@ private:
     std::unique_ptr<ObstacleManager> obstacleManager;
 
     // Configuration
-    static constexpr int kInitialFixedObstacles = 3;
-    static constexpr int kInitialMovingObstacles = 1;
-    static constexpr int kObstacleIncreaseInterval = 10; // Every 10 points
+    static constexpr float kInitialSpawnRate = 0.3f; // obstacles per second
+    static constexpr float kSpawnRateIncrease = 0.1f; // increase per difficulty level
+    static constexpr int kDifficultyIncreaseInterval = 5; // Every 5 points
 
     // Updated methods
     void PlaceFood(); // Modified to avoid obstacles
@@ -301,9 +325,10 @@ private:
     void ResetGame(); // Reset obstacles on new game
 
     // New methods
-    void UpdateObstacles();
+    void UpdateObstacles(float delta_time);
     void CheckObstacleCollisions();
     void UpdateDifficulty();
+    void HandleObstacleSpawning(float delta_time);
     bool IsValidFoodPosition(int x, int y) const;
 };
 ```
@@ -312,10 +337,12 @@ private:
 - [ ] Add `std::unique_ptr<ObstacleManager>` to Game class
 - [ ] Use member initialization lists in constructor
 - [ ] Modify PlaceFood() to use ObstacleManager::IsValidFoodPosition()
-- [ ] Add obstacle update calls to main Update() method
+- [ ] Add obstacle update calls to main Update() method with delta time
 - [ ] Implement collision checking in UpdatePlaying()
-- [ ] Add difficulty progression based on score
+- [ ] Add difficulty progression based on score (spawn rate increase)
 - [ ] Use const references for collision detection parameters
+- [ ] Implement HandleObstacleSpawning() for timed obstacle creation
+- [ ] Add delta time calculation for smooth obstacle lifetime management
 
 ### Sprint 3: Enhanced Collision Detection & Optimization (Session 3)
 
@@ -431,14 +458,11 @@ public:
     void RenderPlayingWithObstacles(const Snake& snake, const SDL_Point& food,
                                    const ObstacleManager& obstacleManager) const;
 
-    // UI enhancement for obstacle information
-    void RenderObstacleInfo(int fixed_count, int moving_count, int difficulty_level) const;
-    void RenderDifficultyLevel(int level) const;
 
 private:
     // New rendering helper methods
     void DrawObstacleCell(int x, int y, const SDL_Color& color) const;
-    void DrawMovingObstacleWithEffect(int x, int y, MovementPattern pattern) const;
+    void DrawMovingObstacle(int x, int y, MovementPattern pattern) const;
     SDL_Color GetObstacleColor(ObstacleType type) const;
 
     // Const methods for color management
@@ -451,9 +475,8 @@ private:
 - [ ] Add const methods for all rendering operations
 - [ ] Use const references for all object parameters
 - [ ] Implement different visual styles for obstacle types
-- [ ] Add visual effects for moving obstacles (glow, animation)
-- [ ] Create UI elements showing obstacle statistics
 - [ ] Use constexpr for compile-time color calculations
+- [ ] Ensure simple, clean visual presentation without effects
 
 #### Task 4.2: Game Loop Integration and State Management
 **Rubric Criteria**: Loops, Functions, State Management
@@ -484,27 +507,30 @@ void Game::Run(Controller const &controller, Renderer &renderer,
 
         // State-specific updates with obstacle integration
         if (currentState == GameState::PLAYING) {
-            UpdateWithObstacles(); // Enhanced update method
+            UpdateWithObstacles(frame_duration / 1000.0f); // Pass delta time in seconds
         }
 
         // State-specific rendering with obstacles
         switch (currentState) {
         case GameState::PLAYING:
             renderer.RenderPlayingWithObstacles(snake, food, *obstacleManager);
-            renderer.RenderObstacleInfo(obstacleManager->GetFixedObstacleCount(),
-                                       obstacleManager->GetMovingObstacleCount(),
-                                       GetDifficultyLevel());
             break;
         // ... other rendering states ...
         }
     }
 }
 
-void Game::UpdateWithObstacles() {
+void Game::UpdateWithObstacles(float delta_time) {
     if (!snake.alive) return;
 
-    // Update obstacles first
-    obstacleManager->UpdateObstacles();
+    // Update obstacles with lifetime management
+    obstacleManager->UpdateObstacles(delta_time);
+
+    // Handle obstacle spawning based on timer
+    HandleObstacleSpawning(delta_time);
+
+    // Clean up expired obstacles
+    obstacleManager->ClearExpiredObstacles();
 
     // Update snake
     snake.Update();
@@ -517,12 +543,13 @@ void Game::UpdateWithObstacles() {
 ```
 
 **Implementation Checklist:**
-- [ ] Integrate obstacle updates into main game loop
+- [ ] Integrate obstacle updates into main game loop with delta time
 - [ ] Add obstacle rendering to all appropriate game states
 - [ ] Implement enhanced collision checking in Update() cycle
-- [ ] Add difficulty progression logic based on score
+- [ ] Add spawning system based on timer and difficulty progression
+- [ ] Implement expired obstacle cleanup using erase-remove idiom
 - [ ] Use various control structures throughout implementation
-- [ ] Maintain 60 FPS performance with obstacle processing
+- [ ] Maintain 60 FPS performance with temporal obstacle processing
 
 ### Sprint 5: Advanced Features & Concurrency (Session 5)
 
