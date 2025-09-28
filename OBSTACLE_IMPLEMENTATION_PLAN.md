@@ -14,12 +14,12 @@
 **So that** I need to adapt my strategy as the playing field changes dynamically
 
 **Acceptance Criteria:**
-- [ ] Fixed obstacles spawn randomly during gameplay at timed intervals
-- [ ] Obstacles are visually distinct from snake and food (different color/texture)
-- [ ] Snake dies when colliding with fixed obstacles
-- [ ] Food cannot spawn on obstacle locations
-- [ ] Obstacles have limited lifespan (5-15 seconds) before disappearing
-- [ ] New obstacles spawn continuously to maintain challenge level
+- [x] Fixed obstacles spawn randomly during gameplay at timed intervals
+- [x] Obstacles are visually distinct from snake and food (different color/texture)
+- [x] Snake dies when colliding with fixed obstacles
+- [x] Food cannot spawn on obstacle locations
+- [x] Obstacles have limited lifespan (5-15 seconds) before disappearing
+- [x] New obstacles spawn continuously to maintain challenge level
 
 ### User Story 2: Temporary Moving Obstacles
 **As a** player
@@ -27,13 +27,13 @@
 **So that** the game becomes progressively more challenging with constantly changing patterns
 
 **Acceptance Criteria:**
-- [ ] Moving obstacles patrol in predictable patterns (linear, circular, zigzag)
-- [ ] Moving obstacles respect grid boundaries and wrap around screen edges
-- [ ] Multiple movement patterns available for variety
-- [ ] Snake dies when colliding with moving obstacles
-- [ ] Moving obstacles avoid colliding with each other
-- [ ] Movement speed configurable and increases with game progression
-- [ ] Moving obstacles have shorter lifespan (3-10 seconds) than fixed obstacles
+- [x] Moving obstacles patrol in predictable patterns (linear, circular, zigzag)
+- [x] Moving obstacles respect grid boundaries and wrap around screen edges
+- [x] Multiple movement patterns available for variety
+- [x] Snake dies when colliding with moving obstacles
+- [x] Moving obstacles avoid colliding with each other
+- [x] Movement speed configurable and increases with game progression
+- [x] Moving obstacles have shorter lifespan (3-10 seconds) than fixed obstacles
 
 ### User Story 3: Dynamic Obstacle Spawning
 **As a** player
@@ -41,12 +41,12 @@
 **So that** the game remains challenging with constantly evolving obstacles
 
 **Acceptance Criteria:**
-- [ ] Obstacle spawn frequency increases with score progression
-- [ ] Moving obstacle speed increases with progression
-- [ ] Obstacle lifetime decreases at higher difficulty levels (faster turnover)
-- [ ] Multiple obstacles can exist simultaneously with overlapping lifetimes
-- [ ] Spawn timing becomes more unpredictable at higher scores
-- [ ] Maximum simultaneous obstacle limit prevents impossible scenarios
+- [x] Obstacle spawn frequency increases with score progression
+- [x] Moving obstacle speed increases with progression
+- [x] Obstacle lifetime decreases at higher difficulty levels (faster turnover)
+- [x] Multiple obstacles can exist simultaneously with overlapping lifetimes
+- [x] Spawn timing becomes more unpredictable at higher scores
+- [x] Maximum simultaneous obstacle limit prevents impossible scenarios
 
 ## Technical Implementation Plan
 
@@ -1015,38 +1015,38 @@ private:
 - **Rubric Compliance**: Regular verification against rubric criteria
 
 ## Success Metrics
-- [ ] All user stories completed with acceptance criteria met
-- [ ] **19+ rubric criteria addressed across all categories** (exceeds requirements)
-- [ ] No performance degradation from baseline 60 FPS
-- [ ] Thread-safe concurrent obstacle processing
-- [ ] Clean, maintainable code following established patterns
-- [ ] **Advanced C++ features**: Templates, smart pointers, concurrency
-- [ ] **Professional-grade gameplay**: Progressive difficulty, multiple obstacle types
+- [x] All user stories completed with acceptance criteria met
+- [x] **19+ rubric criteria addressed across all categories** (exceeds requirements)
+- [x] No performance degradation from baseline 60 FPS
+- [x] Thread-safe concurrent obstacle processing
+- [x] Clean, maintainable code following established patterns
+- [x] **Advanced C++ features**: Templates, smart pointers, concurrency
+- [x] **Professional-grade gameplay**: Progressive difficulty, multiple obstacle types
 
 ## Definition of Done
 
 ### Code Quality Checklist
-- [ ] All classes follow single responsibility principle
-- [ ] Proper exception handling for all operations
-- [ ] Const correctness throughout implementation
-- [ ] No memory leaks (RAII and smart pointers)
-- [ ] Thread-safe design with proper synchronization
-- [ ] Consistent naming conventions
-- [ ] All public methods clearly documented
+- [x] All classes follow single responsibility principle
+- [x] Proper exception handling for all operations
+- [x] Const correctness throughout implementation
+- [x] No memory leaks (RAII and smart pointers)
+- [x] Thread-safe design with proper synchronization
+- [x] Consistent naming conventions
+- [x] All public methods clearly documented
 
 ### Integration Checklist
-- [ ] Builds successfully with existing CMake configuration
-- [ ] Maintains 60 FPS performance target with obstacles
-- [ ] No breaking changes to existing interfaces
-- [ ] Cross-platform compatibility preserved
-- [ ] Thread safety verified under concurrent access
+- [x] Builds successfully with existing CMake configuration
+- [x] Maintains 60 FPS performance target with obstacles
+- [x] No breaking changes to existing interfaces
+- [x] Cross-platform compatibility preserved
+- [x] Thread safety verified under concurrent access
 
 ### Gameplay Checklist
-- [ ] Obstacles enhance gameplay without making it impossible
-- [ ] Progressive difficulty provides appropriate challenge curve
-- [ ] Visual distinction between obstacle types is clear
-- [ ] Collision detection is accurate and responsive
-- [ ] Movement patterns provide varied and interesting challenges
+- [x] Obstacles enhance gameplay without making it impossible
+- [x] Progressive difficulty provides appropriate challenge curve
+- [x] Visual distinction between obstacle types is clear
+- [x] Collision detection is accurate and responsive
+- [x] Movement patterns provide varied and interesting challenges
 
 ---
 
