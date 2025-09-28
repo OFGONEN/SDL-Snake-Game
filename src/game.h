@@ -7,9 +7,11 @@
 #include "snake.h"
 #include "highscore_manager.h"
 #include "threaded_obstacle_manager.h"
+#include "async_obstacle_generator.h"
 #include <random>
 #include <string>
 #include <memory>
+#include <future>
 
 enum class GameState {
   ENTER_NAME,
@@ -44,6 +46,7 @@ private:
 
   // Add threaded obstacle management
   std::unique_ptr<ThreadedObstacleManager> obstacleManager;
+  std::unique_ptr<AsyncObstacleGenerator> asyncGenerator;
 
   // Configuration
   static constexpr float kInitialSpawnRate = 0.3f; // obstacles per second
@@ -65,9 +68,22 @@ private:
   void CheckObstacleCollisions();
   void UpdateDifficulty();
   void HandleObstacleSpawning(float delta_time);
+  void HandleAsyncObstacleGeneration(); // Async obstacle generation
   void InitializeObstacleThreads(); // Start ThreadedObstacleManager threads
   void ShutdownObstacleThreads(); // Clean shutdown
   bool IsValidFoodPosition(int x, int y) const;
+
+  // Async obstacle generation methods
+  void StartAsyncObstacleGeneration(int fixed_count, int moving_count);
+  void ProcessPendingAsyncObstacles();
+  void LogPerformanceReport() const;
+
+private:
+  // Async generation state
+  std::future<std::vector<std::unique_ptr<Obstacle>>> pending_obstacles_future;
+  bool async_generation_pending{false};
+  float async_generation_timer{0.0f};
+  static constexpr float kAsyncGenerationInterval = 10.0f; // Every 10 seconds
 };
 
 #endif

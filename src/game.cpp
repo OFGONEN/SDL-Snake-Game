@@ -8,7 +8,8 @@ Game::Game(std::size_t grid_width, std::size_t grid_height)
       random_w(0, static_cast<int>(grid_width - 1)),
       random_h(0, static_cast<int>(grid_height - 1)),
       highScoreManager(std::make_unique<HighScoreManager>()),
-      obstacleManager(std::make_unique<ThreadedObstacleManager>(grid_width, grid_height)) {
+      obstacleManager(std::make_unique<ThreadedObstacleManager>(grid_width, grid_height)),
+      asyncGenerator(std::make_unique<AsyncObstacleGenerator>(grid_width, grid_height)) {
   PlaceFood();
   InitializeObstacleThreads();
 }
@@ -257,4 +258,90 @@ void Game::ShutdownObstacleThreads() {
 
 bool Game::IsValidFoodPosition(int x, int y) const {
   return obstacleManager->IsValidFoodPosition(x, y);
+}
+
+void Game::HandleAsyncObstacleGeneration() {
+  async_generation_timer += 0.1f; // Assuming 100ms updates
+
+  // Check if it's time for async generation
+  if (async_generation_timer >= kAsyncGenerationInterval && !async_generation_pending) {
+    int difficulty_level = score / kDifficultyIncreaseInterval + 1;
+    int fixed_count = std::min(difficulty_level / 2, 3); // Max 3 fixed obstacles
+    int moving_count = std::min(difficulty_level / 3, 2); // Max 2 moving obstacles
+
+    StartAsyncObstacleGeneration(fixed_count, moving_count);
+    async_generation_timer = 0.0f;
+  }
+
+  // Process any completed async generation
+  ProcessPendingAsyncObstacles();
+}
+
+void Game::StartAsyncObstacleGeneration(int fixed_count, int moving_count) {
+  if (async_generation_pending) {
+    return; // Already generating
+  }
+
+  // Create forbidden positions (snake body + food)
+  std::vector<SDL_Point> forbidden_positions;
+  forbidden_positions.push_back(food);
+  forbidden_positions.push_back({static_cast<int>(snake.head_x), static_cast<int>(snake.head_y)});
+
+  for (const auto& segment : snake.body) {
+    forbidden_positions.push_back(segment);
+  }
+
+  // Start async generation
+  pending_obstacles_future = asyncGenerator->GenerateObstaclesAsync(
+    fixed_count, moving_count, forbidden_positions);
+  async_generation_pending = true;
+}
+
+void Game::ProcessPendingAsyncObstacles() {
+  if (!async_generation_pending) {
+    return;
+  }
+
+  // Check if async generation is complete
+  if (pending_obstacles_future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+    try {
+      auto new_obstacles = pending_obstacles_future.get();
+
+      // Add generated obstacles to the obstacle manager
+      for (auto& obstacle : new_obstacles) {
+        if (obstacle->GetType() == ObstacleType::FIXED) {
+          obstacleManager->AddFixedObstacle(obstacle->GetX(), obstacle->GetY(),
+                                          obstacle->GetRemainingLifetime());
+        } else if (obstacle->GetType() == ObstacleType::MOVING) {
+          MovingObstacle* moving_obstacle = static_cast<MovingObstacle*>(obstacle.get());
+          obstacleManager->AddMovingObstacle(obstacle->GetX(), obstacle->GetY(),
+                                           moving_obstacle->GetPattern(),
+                                           obstacle->GetRemainingLifetime());
+        }
+      }
+
+      std::cout << "Async generation completed: " << new_obstacles.size() << " obstacles added" << std::endl;
+    } catch (const std::exception& e) {
+      std::cerr << "Async obstacle generation failed: " << e.what() << std::endl;
+    }
+
+    async_generation_pending = false;
+  }
+}
+
+void Game::LogPerformanceReport() const {
+  std::cout << "\n=== Game Performance Report ===" << std::endl;
+  std::cout << "Current Score: " << score << std::endl;
+  std::cout << "Obstacles Count: " << obstacleManager->GetObstacleCountSafe() << std::endl;
+  std::cout << "Total Generated (Async): " << asyncGenerator->GetTotalGeneratedObstacles() << std::endl;
+
+  auto avg_gen_time = asyncGenerator->GetAverageGenerationTime();
+  std::cout << "Average Generation Time: " << avg_gen_time.count() / 1000 << " μs" << std::endl;
+
+  obstacleManager->LogPerformanceReport();
+
+  if (!obstacleManager->IsPerformanceAcceptable()) {
+    std::cout << "WARNING: Performance below acceptable thresholds!" << std::endl;
+  }
+  std::cout << "===============================" << std::endl;
 }

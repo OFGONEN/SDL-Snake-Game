@@ -2,6 +2,7 @@
 #define THREADED_OBSTACLE_MANAGER_H
 
 #include "obstacle_manager.h"
+#include "performance_monitor.h"
 #include <thread>
 #include <shared_mutex>
 #include <condition_variable>
@@ -31,6 +32,11 @@ public:
 
     // Asynchronous operations
     std::future<std::size_t> CleanupExpiredAsync();
+
+    // Performance monitoring access
+    const PerformanceMonitor& GetPerformanceMonitor() const;
+    void LogPerformanceReport() const;
+    bool IsPerformanceAcceptable() const;
 
 private:
     // Threading components
@@ -64,6 +70,11 @@ private:
     // Performance monitoring
     std::atomic<uint64_t> lifetime_updates_count{0};
     std::chrono::steady_clock::time_point thread_start_time;
+    std::unique_ptr<PerformanceMonitor> performance_monitor;
+
+    // Performance timing helpers
+    void TrackCollisionTiming(std::function<bool()> collision_func, bool& result) const;
+    void TrackSyncOverhead(std::function<void()> sync_func) const;
 };
 
 #endif
