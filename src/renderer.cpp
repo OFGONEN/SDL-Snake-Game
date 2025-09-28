@@ -267,8 +267,9 @@ SDL_Color Renderer::GetColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
 }
 
 void Renderer::LoadFonts() {
-  // Try to load a system font - this will need to be adjusted based on the system
+  // Try to load fonts in priority order: project font first, then system fallbacks
   const char* fontPaths[] = {
+    "Inter-VariableFont.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/TTF/DejaVuSans.ttf",
     "/System/Library/Fonts/Arial.ttf",
